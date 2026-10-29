@@ -289,7 +289,7 @@ const csv=k=>'\ufeff'+rowsOf(k).map(r=>r.map(c=>'"'+cell(c).replace(/"/g,'""')+'
 const ADMIN='kaboo7766@gmail.com';
 const IDLE=30*60000;
 let S={w:[],t:[],v:[],s:[],x:[],l:[],u:[]},ME=null,SID='',tab='dash',pend=null,flt={p:'',ty:'',q:''},selV='',rd=today(),last={d:today(),sh:'1'},bkv='',xs='v';
-let loaded={},unsubs=[],hbT=null,tick=0,lastAct=Date.now(),authBusy=false,entering=false,gateMsg='',gateErr=0,seedChecked=false,rt=0,pendR=false;
+let loaded={},unsubs=[],hbT=null,tick=0,lastAct=Date.now(),authBusy=false,entering=false,gateMsg='',gateErr=0,seedChecked=false,rt=0,pendR=false,loadErr='';
 let gsU='',gsK='',gsA=false,gsT=0,gsBusy=false,gsDirty=false;
 try{gsU=localStorage.getItem('wms_gs')||'';gsK=localStorage.getItem('wms_gsk')||'';gsA=localStorage.getItem('wms_gsa')==='1'}catch(e){}
 const isAdmin=()=>!!ME&&ME.role==='admin';
@@ -393,16 +393,16 @@ function render(){
  const tb=tabsFor();if(!tb.some(t=>t[0]===tab))tab='dash';
  $('nav').innerHTML=ME?tb.map(t=>`<button class="tab${tab===t[0]?' on':''}" onclick="go('${t[0]}')">${ic(t[2],18)}<span>${t[1]}</span></button>`).join(''):'';
  if(!ME){$('app').innerHTML='';return}
- if(!['w','v','s','t','x'].every(k=>loaded[k])){$('app').innerHTML='<div id="ld">جارٍ تحميل البيانات...</div>';return}
+ if(!['w','v','s','t','x'].every(k=>loaded[k])){$('app').innerHTML=loadErr?`<div class="card" style="border-color:var(--out)"><div class="sec" style="color:var(--out)">تعذر تحميل البيانات</div><div class="hint" style="margin:0 0 8px">${esc(loadErr)}</div><div class="hint" style="margin:0 0 12px">السبب الأشهر: قواعد Firestore لم تُنشر بعد. افتح Firebase Console ثم Firestore Database ثم Rules، والصق محتوى ملف firestore.rules واضغط Publish، ثم أعد تحميل الصفحة.</div><button class="btn" onclick="location.reload()">إعادة التحميل</button></div>`:'<div id="ld">جارٍ تحميل البيانات...</div>';return}
  $('app').innerHTML=({dash:vDash,inc:vInc,sto:vSto,outc:vOut,wh:vWh,log:vLog,usr:vUsr,lgn:vLgn,bk:vBk})[tab]()}
 const typing=()=>{const a=document.activeElement;return!!a&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)&&$('app').contains(a)};
 function sched(){if(rt)return;rt=setTimeout(()=>{rt=0;if(typing()){pendR=true;return}render();gsAuto()},80)}
 document.addEventListener('focusout',()=>{if(pendR)setTimeout(()=>{if(typing())return;pendR=false;render();gsAuto()},700)});
 
-function stopAll(){unsubs.forEach(u=>{try{u()}catch(e){}});unsubs=[];loaded={};seedChecked=false;S={w:[],t:[],v:[],s:[],x:[],l:[],u:[]};syncPR()}
+function stopAll(){unsubs.forEach(u=>{try{u()}catch(e){}});unsubs=[];loaded={};loadErr='';seedChecked=false;S={w:[],t:[],v:[],s:[],x:[],l:[],u:[]};syncPR()}
 function startListeners(){stopAll();const cols={...MAP};if(isAdmin()){cols.u='allowed';cols.l='logins'}
  Object.keys(cols).forEach(k=>{unsubs.push(DB.listen(cols[k],rows=>{S[k]=rows.sort((a,b)=>(a.ca||0)-(b.ca||0));if(k==='x')syncPR();loaded[k]=1;
-  if(k==='w'&&!seedChecked){seedChecked=true;if(isAdmin()&&rows.length===0)seed()}sched()},e=>toast('تعذر قراءة البيانات ('+cols[k]+'): '+errTxt(e),'e')))})}
+  if(k==='w'&&!seedChecked){seedChecked=true;if(isAdmin()&&rows.length===0)seed()}sched()},e=>{loadErr=errTxt(e)+' ('+cols[k]+')';toast('تعذر قراءة البيانات ('+cols[k]+'): '+errTxt(e),'e');sched()}))})}
 async function seed(){try{if(await DB.get('meta','seeded'))return;const now=Date.now();
  const ops=PR.slice(0,5).map((p,i)=>({t:'set',c:'warehouses',id:'w'+(i+1),d:{id:'w'+(i+1),n:'مخزن '+(i+1),p:p.id,ca:now+i}}));
  ops.push({t:'set',c:'meta',id:'seeded',d:{ok:true,ca:now}});await DB.batch(ops)}catch(e){}}
@@ -426,7 +426,7 @@ async function enter(u){if(entering)return;entering=true;
   if(!al||al.active===false){gateMsg='هذا الحساب ('+u.email+') غير مسجل أو موقوف. اطلب من المدير إضافته.';gateErr=1;await DB.signOut();return}
   ME={uid:u.uid,email:u.email,name:al.name||u.name||u.email,role:(al.role==='admin'||u.email===ADMIN)?'admin':'sup'};
   document.body.classList.toggle('sup',!isAdmin());$('hb').style.display=isAdmin()?'flex':'none';
-  hideGate();lastAct=Date.now();startListeners();updSes();render();startBeat();await openLogin()}
+  hideGate();lastAct=Date.now();startListeners();updSes();render();startBeat();setTimeout(()=>{if(ME&&!['w','v','s','t','x'].every(k=>loaded[k])&&!loadErr){loadErr='انتهت مهلة التحميل. تحقق من الإنترنت ومن قواعد Firestore.';render()}},12000);await openLogin()}
  catch(e){showGate('g','تعذر الدخول: '+errTxt(e),1)}finally{entering=false}}
 async function openLogin(){let sid='';try{sid=localStorage.getItem('wms_sid')||''}catch(e){}
  try{if(sid){const r=await DB.get('logins',sid);if(r&&r.uid===ME.uid&&!r.logoutMs){SID=sid;DB.update('logins',sid,{lastMs:Date.now()}).catch(()=>{});return}}}catch(e){}
