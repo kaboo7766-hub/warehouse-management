@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && request.auth.token.email_verified == true;
+    }
+    function mail() {
+      return request.auth.token.email.lower();
+    }
+    function superAdmin() {
+      return signedIn() && mail() == 'kaboo7766@gmail.com';
+    }
+    function allowedPath() {
+      return /databases/$(database)/documents/allowed/$(mail());
+    }
+    function isUser() {
+      return superAdmin() || (signedIn() && exists(allowedPath()) && get(allowedPath()).data.active == true);
+    }
+    function isAdmin() {
+      return superAdmin() || (isUser() && get(allowedPath()).data.role == 'admin');
+    }
+    function qtyOk() {
+      return request.resource.data.q is number && request.resource.data.q > 0;
+    }
+
+    match /allowed/{p} {
+      allow get: if signedIn() && p == mail();
+      allow list, create, update, delete: if isAdmin();
+    }
+    match /meta/{id} {
+      allow read: if isUser();
+      allow write: if isAdmin();
+    }
+    match /warehouses/{id} {
+      allow read: if isUser();
+      allow write: if isAdmin();
+    }
+    match /products/{id} {
+      allow read: if isUser();
+      allow write: if isAdmin();
+    }
+    match /vessels/{id} {
+      allow read: if isUser();
+      allow create: if isUser() && qtyOk();
+      allow update, delete: if isAdmin();
+    }
+    match /stored/{id} {
+      allow read: if isUser();
+      allow create: if isUser() && qtyOk();
+      allow delete: if isAdmin();
+    }
+    match /outgoing/{id} {
+      allow read: if isUser();
+      allow create: if isUser() && qtyOk();
+      allow delete: if isAdmin();
+    }
+    match /logins/{id} {
+      allow read: if isAdmin() || (isUser() && resource.data.uid == request.auth.uid);
+      allow create: if isUser() && request.resource.data.uid == request.auth.uid;
+      allow update: if isUser() && resource.data.uid == request.auth.uid;
+    }
+  }
+}
