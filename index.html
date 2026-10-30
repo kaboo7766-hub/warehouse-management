@@ -142,7 +142,7 @@ function tbl(list,del){
  const rows=[...list].sort((a,b)=>(b.d||'').localeCompare(a.d||'')||(b.ca||0)-(a.ca||0)).map(x=>{
   const p=P(x.p),i=x.ty==='inc',vd=!!x.voided,v=x.v?vAny(x.v):null;let det;
   if(i)det=`${ic('ship',14)} <b>${esc((v&&v.vessel)||'—')}</b> · رصيف ${esc((v&&v.berth)||'—')}<br><small>${SHN(x.sh)} · ${x.trucks?x.trucks+' سيارة × '+f(x.avg)+' طن':'بدون تفاصيل سيارات'}</small>`;
-  else det=`${ic('user',14)} <b>${esc(x.to||'—')}</b>${v?`<br><small>${ic('ship',13)} ${esc(v.vessel)}</small>`:''}<br><small>${x.src==='third'?'من مخازن الغير'+(x.tw?': '+esc(x.tw):''):'من مخازننا'}${x.driver?' · السائق: '+esc(x.driver):''}${x.ct?' · المقاول: '+esc(x.ct):''}${x.car?' · '+esc(x.car):''}</small>${x.xq>0?`<br><small style="color:var(--out)">${esc(x.xt||'غير المركب')}: ${f(x.xq)} طن</small>`:''}`;
+  else det=`${ic('user',14)} <b>${esc(x.to||'—')}</b>${v?`<br><small>${ic('ship',13)} ${esc(v.vessel)}</small>`:''}<br><small>${x.src==='third'?'من مخازن الغير'+(x.tw?': '+esc(x.tw):''):'من مخازننا'}${x.driver?' · السائق: '+esc(x.driver):''}${x.ct?' · المقاول: '+esc(x.ct):''}${x.car?' · '+esc(x.car):''}${x.pol?' · بوليصة: '+esc(x.pol):''}${(x.tr||1)>1?' · '+x.tr+' عربيات':''}</small>${x.xq>0?`<br><small style="color:var(--out)">${esc(x.xt||'غير المركب')}: ${f(x.xq)} طن</small>`:''}${isAdmin()&&(x.feeT||x.feeC)?`<br><small style="color:var(--in)">إيراد: ${f(r2((x.feeT||0)+(x.feeC||0)))} جنيه</small>`:''}${isAdmin()&&x.settle>0?`<br><small>مبلغ التصفية (لوجستيات): ${f(x.settle)} جنيه</small>`:''}`;
   const b=del?`<td>${vd?`<small>ملغي بواسطة ${esc(x.voidedBy||'')}</small>`:`<button class="x" onclick="voidTx('${x.id}')">${ic('trash',14)}${pend===x.id?'تأكيد الإلغاء؟':'إلغاء'}</button>`}</td>`:'';
   const wc=i?esc(wn(x.w)):(x.src==='third'?'<small>مخازن الغير</small>':esc(wn(x.w)));
   const qs=i?'+'+f(x.q)+' طن':(x.q>0?'−'+f(x.q)+' طن':'—');
@@ -150,7 +150,7 @@ function tbl(list,del){
  return`<div class="tw"><table><thead><tr><th>النوع</th><th>التاريخ</th><th>الصنف</th><th>المخزن</th><th>الكمية</th><th>التفاصيل</th>${del?'<th></th>':''}</tr></thead><tbody>${rows}</tbody></table></div>`}
 function vDash(){
  const tin=r3(S.s.reduce((a,x)=>a+x.q,0)),tout=r3(S.t.filter(x=>x.src!=='third').reduce((a,x)=>a+x.q,0)),tthird=r3(S.t.filter(x=>x.src==='third').reduce((a,x)=>a+x.q,0)),xqt=r3(S.t.reduce((a,x)=>a+(x.xq||0),0)),rem=r3(S.v.reduce((a,v)=>a+remV(v.id),0));
- const stats=[['box','رصيد المخازن',f(tin-tout)],['down','إجمالي المخزَّن',f(tin)],['up','المنصرف من مخازننا',f(tout)],['up','المنصرف من مخازن الغير',f(tthird)],['ship','متبقي على المراكب',f(rem)],['truck','كميات غير المركب (سلف)',f(xqt)]].map(s=>`<div class="card st"><div class="ic">${ic(s[0],24)}</div><div><b>${s[2]} <small>طن</small></b><span>${s[1]}</span></div></div>`).join('');
+ const stats=[['box','رصيد المخازن',f(tin-tout)],['down','إجمالي المخزَّن',f(tin)],['up','المنصرف من مخازننا',f(tout)],['up','المنصرف من مخازن الغير',f(tthird)],['ship','متبقي على المراكب',f(rem)],['truck','كميات غير المركب (سلف)',f(xqt)],...(isAdmin()?[['box','إيراد اليوم (جنيه)',f(dayAgg(today()).tot[7])]]:[])].map(s=>`<div class="card st"><div class="ic">${ic(s[0],24)}</div><div><b>${s[2]} <small>طن</small></b><span>${s[1]}</span></div></div>`).join('');
  const cards=PR.map(p=>{const a=sumP(p.id,'inc'),o=sumP(p.id,'outc'),n=S.w.filter(w=>w.p===p.id).length;
   return`<div class="card pc" style="--pc:${p.c}"><div class="ph">${ic(p.k,22)}<b>${p.n}</b></div><div class="big">${f(a-o)}<small> طن</small></div><div class="mini"><span class="up">${ic('down',14)}مخزَّن ${f(a)}</span><span class="dn">${ic('up',14)}منصرف ${f(o)}</span></div><div class="sub">${n} مخزن</div></div>`}).join('');
  const wr=S.w.slice().sort((a,b)=>PR.findIndex(p=>p.id===a.p)-PR.findIndex(p=>p.id===b.p)).map(w=>`<tr><td><span class="dot" style="background:${P(w.p).c}"></span>${P(w.p).n}</td><td>${esc(w.n)}</td><td class="num">${f(sumW(w.id,'inc'))}</td><td class="num">${f(sumW(w.id,'outc'))}</td><td class="num"><b>${f(st(w.id))}</b> طن</td></tr>`).join('');
@@ -217,31 +217,39 @@ function calc(el){const F=el.form.elements,t=parseFloat(F.trucks.value),a=parseF
  else if(el.name==='trucks'&&t>0&&q>0)F.avg.value=r3(q/t)}
 
 
-function vOut(){const p0=PR[0].id,w0=S.w.find(w=>w.p===p0);
+function vOut(){const p0=PR[0].id,w0=S.w.find(w=>w.p===p0),R=rates();
  return`<form class="card" onsubmit="addOut(event)"><div class="sec">${ic('truck',20)}بيانات المنصرف</div>
  <div class="fg"><label>${ic('cal',15)}التاريخ<input type="date" name="d" required value="${today()}"></label>
  <label>${ic('wheat',15)}الصنف<select name="p" onchange="outUpd(this)">${pOpts(p0)}</select></label>
  <label>${ic('ship',15)}المركب<select name="v">${vOpts(p0)}</select></label>
+ <label>رقم البوليصة<input name="pol" maxlength="40"></label>
  <label>مصدر الكمية<select name="src" onchange="outUpd(this)"><option value="own">من مخازننا</option><option value="third">من مخازن الغير</option></select></label>
  <label id="ow">${ic('wh',15)}المخزن<select name="w" onchange="outUpd(this)">${wOpts(p0)}</select></label>
  <label id="tw" style="display:none">اسم مخزن الغير<input name="tw" maxlength="60"></label>
- <label>الكمية من المركب (طن)<input type="number" name="q" min="0" step="0.001"></label>
+ <label>الكمية من المركب (طن)<input type="number" name="q" min="0" step="0.001" oninput="outUpd(this)"></label>
  <label>كمية غير المركب (طن)<input type="number" name="xq" min="0" step="0.001"></label>
  <label>نوع كمية غير المركب<select name="xt"><option>سلفة من العميل</option><option>أخرى</option></select></label>
  <label>${ic('user',15)}الجهة المستلمة (العميل)<input name="to" required maxlength="80"></label>
  <label>اسم السائق<input name="driver" maxlength="60"></label>
- <label>${ic('truck',15)}مقاول النقل<select name="ct">${cOpts()}</select></label>
+ <label>${ic('truck',15)}مقاول النقل<select name="ct" onchange="outUpd(this)">${cOpts()}</select></label>
+ <label>عدد العربيات<input type="number" name="tr" min="1" step="1" value="1" oninput="outUpd(this)"></label>
  <label>رقم السيارة<input name="car" maxlength="40"></label>
+ <label id="sl" style="display:none">مبلغ التصفية (جنيه) لعربية اللوجيستية<input type="number" name="settle" min="0" step="0.01"></label>
+ <label style="display:flex;gap:8px;align-items:center" id="cl"><input type="checkbox" name="cutOn" style="width:auto;margin:0" checked onchange="outUpd(this)">حساب القطع (${f(R.cut)} جنيه للعربية)</label>
  <label>ملاحظات<input name="note" maxlength="150"></label></div>
- <div class="hint">الكمية من المركب تُحتسب على المركب وتُخصم من رصيد مخازننا إذا كان المصدر مخازننا. كمية غير المركب (مثل سلفة من العميل) تُسجل منفصلة ولا تُخصم من المخازن ولا من كمية المركب.</div>
+ <div class="hint">الكمية من المركب تُحتسب على المركب وتُخصم من رصيد مخازننا إذا كان المصدر مخازننا. كمية غير المركب (مثل سلفة من العميل) تُسجل منفصلة ولا تُخصم. الحساب (${f(R.ton)} جنيه للطن والقطع) يسري على مخازننا فقط ولمقاول غير اللوجيستية.</div>
+ ${isAdmin()?'<div class="hint" id="pv" style="font-weight:700"></div>':''}
  <button class="btn out" type="submit">${ic('up',18)}تسجيل المنصرف</button><span class="av" id="av">${w0?'المتاح في المخزن: '+f(st(w0.id))+' طن':''}</span></form>
  <h2>${ic('up',20)}سجل المنصرف</h2>${tbl(allLog().filter(x=>x.ty==='outc'),true)}`}
 const vOpts=pid=>'<option value="">— اختر المركب —</option>'+S.v.filter(v=>v.p===pid).map(v=>`<option value="${v.id}">${esc(v.vessel)} · رصيف ${esc(v.berth||'—')} · منصرف ${f(dispV(v.id))} من ${f(v.q)}</option>`).join('');
-const cOpts=()=>'<option value="">— غير محدد —</option>'+S.c.map(c=>`<option value="${esc(c.n)}">${esc(c.n)}</option>`).join('');
+const cOpts=()=>'<option value="">— غير محدد —</option>'+S.c.map(c=>`<option value="${esc(c.n)}">${esc(c.n)}${c.lg?' (لوجستيات)':''}</option>`).join('');
 function outUpd(sel){const F=sel.form.elements;
  if(sel.name==='p'){F.w.innerHTML=wOpts(sel.value);F.v.innerHTML=vOpts(sel.value)}
- const third=F.src.value==='third';$('ow').style.display=third?'none':'';$('tw').style.display=third?'':'none';
- const a=$('av');if(a)a.textContent=(!third&&F.w.value)?'المتاح في المخزن: '+f(st(F.w.value))+' طن':''}
+ const third=F.src.value==='third',lg=!!F.ct.value&&isLg(F.ct.value);
+ $('ow').style.display=third?'none':'';$('tw').style.display=third?'':'none';$('sl').style.display=lg?'':'none';
+ const a=$('av');if(a)a.textContent=(!third&&F.w.value)?'المتاح في المخزن: '+f(st(F.w.value))+' طن':'';
+ const pv=$('pv');if(pv){const fe=calcFees({src:third?'third':'own',ct:F.ct.value,q:parseFloat(F.q.value)||0,tr:Math.max(1,parseInt(F.tr.value,10)||1),cutOn:F.cutOn.checked});
+  pv.textContent=(fe.feeT||fe.feeC)?'الإيراد: أطنان '+f(fe.feeT)+' + قطع '+f(fe.feeC)+' = '+f(r2(fe.feeT+fe.feeC))+' جنيه':(lg?'عربية لوجيستية: لا يُحسب إيراد، سجّل مبلغ التصفية':'')}}
 function vWh(){
  const cards=S.w.map(w=>{const p=P(w.p);return`<div class="card pc" style="--pc:${p.c}"><div class="ph">${ic('wh',22)}<b>${esc(w.n)}</b></div><div class="sub">${p.n}</div><div class="big">${f(st(w.id))}<small> طن</small></div><div class="mini"><span class="up">${ic('down',14)}${f(sumW(w.id,'inc'))}</span><span class="dn">${ic('up',14)}${f(sumW(w.id,'outc'))}</span></div><div style="margin-top:10px"><button class="x" onclick="hideWh('${w.id}')">${ic('trash',14)}${pend===w.id?'تأكيد الإخفاء؟':'إخفاء المخزن'}</button></div></div>`}).join('');
  return`${ctCard()}<form class="card" style="margin-top:12px" onsubmit="addPr(event)"><div class="sec">${ic('wheat',20)}إضافة صنف جديد</div><div class="fg"><label>اسم الصنف<input name="n" required maxlength="40"></label><label>الشكل<select name="k"><option value="wheat">حبوب</option><option value="bag">أعلاف / شوالات</option></select></label></div><div class="hint">يُنشأ مخزن للصنف تلقائيًا، ويظهر له عمود مستقل في ورقة ملخص الورديات وتقرير الورديات.</div><button class="btn" type="submit">${ic('plus',18)}إضافة الصنف</button></form>${prList()}<form class="card" style="margin-top:12px" onsubmit="addWh(event)"><div class="sec">${ic('wh',20)}إضافة مخزن جديد</div>
@@ -251,7 +259,7 @@ function vWh(){
 
 
 function logList(){const q=flt.q.trim().toLowerCase();
- return allLog().filter(x=>{const v=vAny(x.v)||{};return(!flt.p||x.p===flt.p)&&(!flt.ty||x.ty===flt.ty)&&(!q||[v.vessel,v.berth,v.sup,x.to,x.car,x.note,x.driver,x.ct,x.tw,wn(x.w)].join(' ').toLowerCase().includes(q))})}
+ return allLog().filter(x=>{const v=vAny(x.v)||{};return(!flt.p||x.p===flt.p)&&(!flt.ty||x.ty===flt.ty)&&(!q||[v.vessel,v.berth,v.sup,x.to,x.car,x.note,x.driver,x.ct,x.tw,x.pol,wn(x.w)].join(' ').toLowerCase().includes(q))})}
 
 function vLog(){
  return`<div class="fl"><select onchange="flt.p=this.value;fl()"><option value="">كل الأصناف</option>${PR.map(p=>`<option value="${p.id}"${flt.p===p.id?' selected':''}>${p.n}</option>`).join('')}</select>
@@ -272,7 +280,8 @@ function editV(id){const v=vid(id);if(!v)return;go('inc');const fm=document.quer
 function rowsOf(k){const stt=x=>x.voided?'ملغي':'ساري';
  if(k==='v')return[['المركب','الرصيف','المورد','الصنف','بدء التفريغ','انتهاء التفريغ','الكمية الكلية (طن)','المخزَّن (طن)','المتبقي للتخزين (طن)','ملاحظات','الحالة'],...[...S.v,...S.vV].map(v=>[v.vessel,v.berth||'',v.sup,P(v.p).n,v.ds,v.de,v.q,v.voided?0:stV(v.id),v.voided?0:remV(v.id),v.note||'',stt(v)])];
  if(k==='s')return[['التاريخ','الوردية','المركب','الرصيف','الصنف','المخزن','عدد السيارات','وزن السيارة (طن)','الإجمالي (طن)','ملاحظات','الحالة'],...[...S.s,...S.sV].sort((a,b)=>(a.d||'').localeCompare(b.d||'')).map(x=>{const v=vAny(x.v)||{};return[x.d,SHN(x.sh),v.vessel||'',v.berth||'',P(x.p).n,wn(x.w),x.trucks||'',x.avg||'',x.q,x.note||'',stt(x)]})];
- if(k==='o')return[['التاريخ','الصنف','المركب','مصدر الكمية','المخزن / مخزن الغير','الكمية من المركب (طن)','كمية غير المركب (طن)','نوع غير المركب','الجهة المستلمة','السائق','مقاول النقل','رقم السيارة','ملاحظات','الحالة'],...[...S.t,...S.tV].sort((a,b)=>(a.d||'').localeCompare(b.d||'')).map(x=>{const v=x.v?vAny(x.v):null;return[x.d,P(x.p).n,v?v.vessel:'',x.src==='third'?'من مخازن الغير':'من مخازننا',x.src==='third'?(x.tw||''):wn(x.w),x.q||0,x.xq||0,x.xq>0?(x.xt||''):'',x.to||'',x.driver||'',x.ct||'',x.car||'',x.note||'',stt(x)]})];
+ if(k==='d')return dayRowsAll();
+ if(k==='o')return[['التاريخ','الصنف','المركب','مصدر الكمية','المخزن / مخزن الغير','الكمية من المركب (طن)','كمية غير المركب (طن)','نوع غير المركب','الجهة المستلمة','رقم البوليصة','عدد العربيات','السائق','مقاول النقل','رقم السيارة','مبلغ التصفية (لوجستيات)','إيراد الأطنان','إيراد القطع','ملاحظات','الحالة'],...[...S.t,...S.tV].sort((a,b)=>(a.d||'').localeCompare(b.d||'')).map(x=>{const v=x.v?vAny(x.v):null;return[x.d,P(x.p).n,v?v.vessel:'',x.src==='third'?'من مخازن الغير':'من مخازننا',x.src==='third'?(x.tw||''):wn(x.w),x.q||0,x.xq||0,x.xq>0?(x.xt||''):'',x.to||'',x.pol||'',x.tr||1,x.driver||'',x.ct||'',x.car||'',x.settle||0,x.feeT||0,x.feeC||0,x.note||'',stt(x)]})];
  if(k==='l')return[['المستخدم','البريد','التاريخ','وقت الدخول','وقت الخروج','المدة (دقيقة)','آخر نشاط','طريقة الخروج'],...S.l.slice().sort((a,b)=>a.loginMs-b.loginMs).map(x=>[x.name,x.email,fmD(x.loginMs),fmT(x.loginMs),x.logoutMs?fmT(x.logoutMs):'',Math.max(0,Math.round(((x.logoutMs||x.lastMs||x.loginMs)-x.loginMs)/60000)),fmT(x.lastMs),x.logoutMs?(x.method||'يدوي'):'لم يسجل خروج'])];
  if(k==='g'){const body=S.v.map(v=>{const own=dispV(v.id,'own'),th=dispV(v.id,'third'),tot=r3(own+th);return[v.vessel,v.berth||'',v.sup,P(v.p).n,v.ds,v.de,v.q,stV(v.id),own,th,tot,r3(v.q-tot),xqV(v.id)]});
   const free=r3(S.t.filter(x=>!x.v).reduce((a,x)=>a+(x.xq||0),0));
@@ -285,7 +294,7 @@ function vRep(){const r=rowsOf('g'),head=r[0],body=r.slice(1);
  return`<h2>${ic('list',20)}تقرير المخازن</h2><div class="hint">لكل مركب: الكمية وتواريخ التفريغ والمنصرف من مخازننا ومن مخازن الغير والمتبقي، وكميات غير المركب (مثل السلف) منفصلة.</div><div class="tw"><table style="min-width:1150px"><thead><tr>${head.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${S.v.length?body.map((x,i)=>`<tr${i===body.length-1?' style="font-weight:700;background:var(--h)"':''}>${x.map(c=>`<td${typeof c==='number'?' class="num"':''}>${typeof c==='number'?f(c):esc(c)}</td>`).join('')}</tr>`).join(''):'<tr><td colspan="13" class="emp">لا توجد مراكب بعد</td></tr>'}</tbody></table></div>`}
 function exportCard(){return`<div class="card"><div class="sec">${ic('list',20)}التصدير إلى جوجل شيت</div>
 <div class="hint">اختر الجدول، ثم انسخه والصقه في الخلية A1 في جوجل شيت، أو نزّله كملف CSV واستورده من قائمة ملف ثم استيراد. كل جدول في ورقة مستقلة.</div>
-<div class="fl"><select onchange="xs=this.value;$('xo').value=tsv(xs)"><option value="v"${xs==='v'?' selected':''}>المراكب</option><option value="s"${xs==='s'?' selected':''}>التخزين اليومي</option><option value="r"${xs==='r'?' selected':''}>ملخص الورديات</option><option value="o"${xs==='o'?' selected':''}>المنصرف</option><option value="l"${xs==='l'?' selected':''}>سجل الدخول</option><option value="g"${xs==='g'?' selected':''}>تقرير المخازن</option></select></div>
+<div class="fl"><select onchange="xs=this.value;$('xo').value=tsv(xs)"><option value="v"${xs==='v'?' selected':''}>المراكب</option><option value="s"${xs==='s'?' selected':''}>التخزين اليومي</option><option value="r"${xs==='r'?' selected':''}>ملخص الورديات</option><option value="o"${xs==='o'?' selected':''}>المنصرف</option><option value="l"${xs==='l'?' selected':''}>سجل الدخول</option><option value="g"${xs==='g'?' selected':''}>تقرير المخازن</option><option value="d"${xs==='d'?' selected':''}>التقرير اليومي (الإيراد)</option></select></div>
 <textarea id="xo" rows="6" readonly onclick="this.select()">${esc(tsv(xs))}</textarea>
 <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn" onclick="cp()">${ic('list',18)}نسخ للصق في جوجل شيت</button><button class="btn alt" onclick="dlCsv()">${ic('down',18)}تنزيل CSV</button></div></div>`}
 
@@ -325,7 +334,7 @@ const all=()=>[...S.s.map(x=>({...x,ty:'inc'})),...S.t.map(x=>({...x,ty:'outc'})
 const fmT=ms=>ms?new Date(ms).toLocaleTimeString('en-GB',{timeZone:'Africa/Cairo'}):'';
 const fmD=ms=>ms?new Date(ms).toLocaleDateString('en-CA',{timeZone:'Africa/Cairo'}):'';
 const MAP={w:'warehouses',v:'vessels',s:'stored',t:'outgoing',x:'products',c:'contractors'};
-const XN={v:'المراكب',s:'التخزين-اليومي',o:'المنصرف',r:'ملخص-الورديات',l:'سجل-الدخول',g:'تقرير المخازن'};
+const XN={v:'المراكب',s:'التخزين-اليومي',o:'المنصرف',r:'ملخص-الورديات',l:'سجل-الدخول',g:'تقرير المخازن',d:'التقرير اليومي'};
 const AE={'auth/popup-closed-by-user':'تم إغلاق نافذة الدخول قبل الإكمال.','auth/cancelled-popup-request':'تم إلغاء الطلب، حاول مرة أخرى.','auth/popup-blocked':'المتصفح منع نافذة الدخول. اسمح بالنوافذ المنبثقة وحاول مرة أخرى.','auth/network-request-failed':'تعذر الاتصال بالإنترنت.','auth/unauthorized-domain':'هذا الدومين غير مضاف في Authorized domains.','auth/operation-not-allowed':'الدخول بحساب جوجل غير مفعّل في Firebase (Authentication ثم Sign-in method).','auth/too-many-requests':'محاولات كثيرة، حاول لاحقًا.','auth/user-disabled':'هذا الحساب موقوف.','auth/account-exists-with-different-credential':'هذا البريد مسجل بطريقة دخول أخرى.','auth/internal-error':'خطأ داخلي في خدمة الدخول، أعد المحاولة.','permission-denied':'ليس لديك صلاحية لهذه العملية.','unavailable':'تعذر الاتصال بالخادم.'};
 const errTxt=e=>{const c=(e&&e.code)||'';const k=String(c).replace(/^firestore\//,'');return AE[c]||AE[k]||('خطأ: '+(c||(e&&e.message)||e))};
 function fire(p,okMsg){toast(okMsg);Promise.resolve(p).catch(e=>toast('تعذر الحفظ: '+errTxt(e),'e'))}
@@ -350,8 +359,9 @@ function addSto(e){e.preventDefault();const F=e.target.elements,v=vid(F.v.value)
  const r=remV(v.id);
  if(o.q>r)return toast('الكمية أكبر من المتبقي على المركب: '+f(r)+' طن','e');
  o.avg=r3(o.q/o.trucks);last={d:o.d,sh:o.sh};selV=v.id;fire(DB.set('stored',o.id,o),'تم التخزين وخصمه من كمية المركب')}
-function addOut(e){e.preventDefault();const F=e.target.elements,third=F.src.value==='third';
- const o={id:uid(),ty:'outc',d:F.d.value,p:F.p.value,v:F.v.value,src:third?'third':'own',w:third?'':F.w.value,tw:third?F.tw.value.trim():'',q:r3(parseFloat(F.q.value)||0),xq:r3(parseFloat(F.xq.value)||0),xt:F.xt.value,to:F.to.value.trim(),driver:F.driver.value.trim(),ct:F.ct.value,car:F.car.value.trim(),note:F.note.value.trim(),ca:Date.now(),by:ME.name};
+function addOut(e){e.preventDefault();const F=e.target.elements,third=F.src.value==='third',ct=F.ct.value,lg=!!ct&&isLg(ct);
+ const o={id:uid(),ty:'outc',d:F.d.value,p:F.p.value,v:F.v.value,pol:F.pol.value.trim(),src:third?'third':'own',w:third?'':F.w.value,tw:third?F.tw.value.trim():'',q:r3(parseFloat(F.q.value)||0),xq:r3(parseFloat(F.xq.value)||0),xt:F.xt.value,to:F.to.value.trim(),driver:F.driver.value.trim(),ct:ct,tr:Math.max(1,parseInt(F.tr.value,10)||1),car:F.car.value.trim(),lgc:lg,settle:lg?r2(parseFloat(F.settle.value)||0):0,cutOn:F.cutOn.checked,note:F.note.value.trim(),ca:Date.now(),by:ME.name};
+ const fe=calcFees({src:o.src,ct:o.ct,q:o.q,tr:o.tr,cutOn:o.cutOn});o.feeT=fe.feeT;o.feeC=fe.feeC;
  if(!o.d||!o.to)return toast('أكمل التاريخ والجهة المستلمة','e');
  if(!(o.q>0)&&!(o.xq>0))return toast('أدخل الكمية من المركب أو كمية غير المركب','e');
  if(o.q>0){if(!o.v)return toast('اختر المركب الذي تُحتسب عليه الكمية','e');
@@ -387,9 +397,11 @@ function hidePr(id){if(!isAdmin())return toast('هذه العملية للمدي
  fire(DB.batch(ops),'تم إخفاء الصنف (بياناته محفوظة)')}
 function addCt(e){e.preventDefault();if(!isAdmin())return toast('هذه العملية للمدير فقط','e');const n=e.target.elements.n.value.trim();
  if(!n)return toast('أدخل اسم المقاول','e');if((S.cAll||[]).some(c=>c.n===n))return toast('هذا المقاول موجود بالفعل','e');
- const id=uid();fire(DB.set('contractors',id,{id:id,n:n,ca:Date.now()}),'تمت إضافة المقاول')}
+ const id=uid();fire(DB.set('contractors',id,{id:id,n:n,lg:!!e.target.elements.lg.checked,ca:Date.now()}),'تمت إضافة المقاول')}
 function togCt(id){if(!isAdmin())return;const c=(S.cAll||[]).find(x=>x.id===id);if(!c)return;fire(DB.update('contractors',id,{hidden:!c.hidden}),c.hidden?'تم إظهار المقاول':'تم إخفاء المقاول')}
-function ctCard(){const l=S.cAll||[];return`<form class="card" onsubmit="addCt(event)"><div class="sec">${ic('truck',20)}مقاولو النقل</div><div class="fg"><label>اسم المقاول<input name="n" required maxlength="60"></label></div><button class="btn" type="submit">${ic('plus',18)}إضافة مقاول</button>${l.length?`<div style="margin-top:12px">${l.map(c=>`<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--b)"><b${c.hidden?' style="opacity:.5"':''}>${esc(c.n)}</b>${c.hidden?'<span class="bd out">مخفي</span>':''}<span style="margin-inline-start:auto"><button class="x" type="button" onclick="togCt('${c.id}')">${c.hidden?'إظهار':'إخفاء'}</button></span></div>`).join('')}</div>`:''}</form>`}
+function ctCard(){const l=S.cAll||[],R=rates();return`<form class="card" onsubmit="addCt(event)"><div class="sec">${ic('truck',20)}مقاولو النقل</div><div class="fg"><label>اسم المقاول<input name="n" required maxlength="60"></label></div>
+<label style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><input type="checkbox" name="lg" style="width:auto;margin:0">مقاول لوجستيات (لا يُحسب عليه إيراد، ويُسجّل له مبلغ تصفية)</label><button class="btn" type="submit">${ic('plus',18)}إضافة مقاول</button>${l.length?`<div style="margin-top:12px">${l.map(c=>`<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--b);flex-wrap:wrap"><b${c.hidden?' style="opacity:.5"':''}>${esc(c.n)}</b>${c.lg?'<span class="bd in">لوجستيات</span>':''}${c.hidden?'<span class="bd out">مخفي</span>':''}<span style="margin-inline-start:auto;display:flex;gap:6px"><button class="x" type="button" onclick="togLg('${c.id}')">${c.lg?'إلغاء اللوجستيات':'تحديد كلوجستيات'}</button><button class="x" type="button" onclick="togCt('${c.id}')">${c.hidden?'إظهار':'إخفاء'}</button></span></div>`).join('')}</div>`:''}</form>
+<form class="card" style="margin-top:12px" onsubmit="saveRates(event)"><div class="sec">${ic('box',20)}أسعار الحساب</div><div class="fg"><label>سعر الطن من مخازننا (جنيه)<input type="number" name="rt" min="0" step="0.01" required value="${R.ton}"></label><label>سعر القطع للعربية (جنيه)<input type="number" name="rc" min="0" step="0.01" required value="${R.cut}"></label></div><div class="hint">تسري الأسعار الجديدة على الحركات التي تُسجل بعد الحفظ فقط، ولا تتغير الحركات السابقة.</div><button class="btn" type="submit">${ic('plus',18)}حفظ الأسعار</button></form>`}
 function addUser(e){e.preventDefault();if(!isAdmin())return;const F=e.target.elements,em=F.em.value.trim().toLowerCase(),nm=F.nm.value.trim();
  if(!/^[^\s@\/]+@[^\s@\/]+[.][^\s@\/]+$/.test(em))return toast('البريد الإلكتروني غير صحيح','e');if(!nm)return toast('أدخل الاسم','e');
  if(S.u.some(u=>u.id===em))return toast('هذا البريد مضاف بالفعل','e');
@@ -415,15 +427,40 @@ function vBk(){return exportCard()+`<div class="card" style="margin-top:12px"><d
 <div class="card" style="margin-top:12px"><div class="sec">${ic('down',20)}استيراد بيانات من النسخة القديمة</div><div class="hint">الصق النسخة الاحتياطية من النسخة القديمة. يُضاف المحتوى للبيانات الحالية ولا يحذف شيئًا.</div><textarea id="bki" rows="5" placeholder="الصق النسخة هنا">${esc(bkv)}</textarea><div style="margin-top:10px"><button class="btn" onclick="importData()">${ic('down',18)}${pend==='imp'?'تأكيد الاستيراد؟':'استيراد'}</button></div></div>`}
 function dlCsv(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv(xs)],{type:'text/csv;charset=utf-8'}));a.download=XN[xs]+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),3000)}
 
+let dayD=today();
+const r2=n=>Math.round(n*100)/100;
+const rates=()=>{const r=(S.m||[]).find(x=>x.id==='rates');return{ton:r&&r.ton>=0?r.ton:20,cut:r&&r.cut>=0?r.cut:200}};
+const isLg=name=>{const c=(S.cAll||[]).find(x=>x.n===name);return!!(c&&c.lg)};
+const lgOf=x=>x.lgc===undefined?!!(x.ct&&isLg(x.ct)):!!x.lgc;
+function calcFees(o){const R=rates(),ok=o.src!=='third'&&o.ct&&!isLg(o.ct)&&o.q>0;return ok?{feeT:r2(o.q*R.ton),feeC:o.cutOn?r2(o.tr*R.cut):0}:{feeT:0,feeC:0}}
+function dayAgg(date){const m={},lg={tr:0,q:0,settle:0};
+ S.t.filter(x=>x.d===date).forEach(x=>{
+  if(lgOf(x)){lg.tr+=x.tr||1;lg.q=r3(lg.q+(x.q||0));lg.settle=r2(lg.settle+(x.settle||0));return}
+  const k=x.ct||'غير محدد',e=m[k]=m[k]||{tr:0,q:0,own:0,ft:0,fc:0};
+  e.tr+=x.tr||1;e.q=r3(e.q+(x.q||0));e.own=r3(e.own+(x.src==='third'?0:(x.q||0)));e.ft=r2(e.ft+(x.feeT||0));e.fc=r2(e.fc+(x.feeC||0))});
+ const rows=Object.keys(m).sort().map(k=>[date,k,m[k].tr,m[k].q,m[k].own,m[k].ft,m[k].fc,r2(m[k].ft+m[k].fc)]);
+ const s=i=>r2(rows.reduce((a,r)=>a+r[i],0));
+ return{rows:rows,tot:[date,'إجمالي اليوم',s(2),r3(s(3)),r3(s(4)),s(5),s(6),s(7)],lg:lg}}
+function dayRowsAll(){const body=[],g=[0,0,0,0,0,0];
+ uq(S.t.map(x=>x.d)).sort().forEach(d=>{const a=dayAgg(d);if(!a.rows.length)return;a.rows.forEach(r=>body.push(r));body.push(a.tot);for(let i=0;i<6;i++)g[i]=r2(g[i]+a.tot[i+2])});
+ return[['التاريخ','المقاول','عدد العربيات','الأطنان (كل المصادر)','من مخازننا (طن)','إيراد الأطنان (جنيه)','إيراد القطع (جنيه)','إجمالي الإيراد (جنيه)'],...body,['الإجمالي الكلي','',...g]]}
+function dayBody(){const a=dayAgg(dayD),t=a.tot;
+ const cards=`<div class="grid g3"><div class="card st"><div class="ic">${ic('box',24)}</div><div><b>${f(t[7])} <small>جنيه</small></b><span>إجمالي إيراد اليوم</span></div></div><div class="card st"><div class="ic">${ic('truck',24)}</div><div><b>${f(t[2])}</b><span>عدد العربيات (بدون اللوجيستية)</span></div></div><div class="card st"><div class="ic">${ic('wheat',24)}</div><div><b>${f(t[3])} <small>طن</small></b><span>الأطنان المنصرفة</span></div></div></div>`;
+ const rows=a.rows.map(r=>`<tr><td><b>${esc(r[1])}</b></td><td class="num">${f(r[2])}</td><td class="num">${f(r[3])}</td><td class="num">${f(r[4])}</td><td class="num">${f(r[5])}</td><td class="num">${f(r[6])}</td><td class="num"><b>${f(r[7])}</b></td></tr>`).join('');
+ return cards+`<div class="tw" style="margin-top:12px"><table style="min-width:680px"><thead><tr><th>المقاول</th><th>عدد العربيات</th><th>الأطنان</th><th>من مخازننا (طن)</th><th>إيراد الأطنان</th><th>إيراد القطع</th><th>إجمالي الإيراد</th></tr></thead><tbody>${rows||'<tr><td colspan="7" class="emp">لا توجد حركات منصرف في هذا اليوم</td></tr>'}${a.rows.length?`<tr style="font-weight:700;background:var(--h)"><td>إجمالي اليوم</td><td class="num">${f(t[2])}</td><td class="num">${f(t[3])}</td><td class="num">${f(t[4])}</td><td class="num">${f(t[5])}</td><td class="num">${f(t[6])}</td><td class="num">${f(t[7])}</td></tr>`:''}</tbody></table></div>`+(a.lg.tr?`<div class="hint" style="margin-top:10px">عربيات اللوجيستية (خارج الإيراد): ${a.lg.tr} عربية، ${f(a.lg.q)} طن، مبالغ التصفية ${f(a.lg.settle)} جنيه</div>`:'')}
+function vDay(){const R=rates();return`<h2>${ic('cal',20)}الإيراد اليومي</h2><div class="fl" style="max-width:260px"><input type="date" value="${dayD}" onchange="dayD=this.value||today();$('dy').innerHTML=dayBody()"></div><div id="dy">${dayBody()}</div><div class="hint" style="margin-top:12px">الأسعار الحالية: ${f(R.ton)} جنيه للطن من مخازننا فقط، و${f(R.cut)} جنيه للقطع لكل عربية مقاول عند التحميل من مخازننا. لا يُحسب إيراد على مخازن الغير ولا على عربيات اللوجيستية. تعديل الأسعار من تبويب المخازن والأصناف ولا يؤثر على الحركات السابقة.</div>`}
+function saveRates(e){e.preventDefault();if(!isAdmin())return toast('هذه العملية للمدير فقط','e');const F=e.target.elements,t=parseFloat(F.rt.value),c=parseFloat(F.rc.value);
+ if(!(t>=0)||!(c>=0))return toast('أدخل أسعارًا صحيحة','e');fire(DB.set('meta','rates',{ton:r2(t),cut:r2(c),ca:Date.now()}),'تم حفظ الأسعار (تسري على الحركات الجديدة فقط)')}
+function togLg(id){if(!isAdmin())return;const c=(S.cAll||[]).find(x=>x.id===id);if(!c)return;fire(DB.update('contractors',id,{lg:!c.lg}),c.lg?'لم يعد المقاول لوجستيات':'تم تحديد المقاول كلوجستيات')}
 function tabsFor(){const t=[['dash','لوحة التحكم','dash'],['inc','المراكب','ship'],['sto','التخزين اليومي','box'],['outc','المنصرف','up'],['rep','تقرير المخازن','list']];
- if(isAdmin())t.push(['wh','المخازن والأصناف','wh']);t.push(['log','سجل الحركات','list']);
+ if(isAdmin())t.push(['wh','المخازن والأصناف','wh'],['day','الإيراد اليومي','cal']);t.push(['log','سجل الحركات','list']);
  if(isAdmin())t.push(['usr','المستخدمون','user'],['lgn','سجل الدخول','cal'],['bk','التصدير والاستيراد','sheet']);return t}
 function render(){
  const tb=tabsFor();if(!tb.some(t=>t[0]===tab))tab='dash';
  $('nav').innerHTML=ME?tb.map(t=>`<button class="tab${tab===t[0]?' on':''}" onclick="go('${t[0]}')">${ic(t[2],18)}<span>${t[1]}</span></button>`).join(''):'';
  if(!ME){$('app').innerHTML='';return}
  if(!['w','v','s','t','x','c'].every(k=>loaded[k])){$('app').innerHTML=loadErr?`<div class="card" style="border-color:var(--out)"><div class="sec" style="color:var(--out)">تعذر تحميل البيانات</div><div class="hint" style="margin:0 0 8px">${esc(loadErr)}</div><div class="hint" style="margin:0 0 12px">السبب الأشهر: قواعد Firestore لم تُنشر بعد. افتح Firebase Console ثم Firestore Database ثم Rules، والصق محتوى ملف firestore.rules واضغط Publish، ثم أعد تحميل الصفحة.</div><button class="btn" onclick="location.reload()">إعادة التحميل</button></div>`:'<div id="ld">جارٍ تحميل البيانات...</div>';return}
- $('app').innerHTML=({dash:vDash,inc:vInc,sto:vSto,outc:vOut,wh:vWh,log:vLog,rep:vRep,usr:vUsr,lgn:vLgn,bk:vBk})[tab]()}
+ $('app').innerHTML=({dash:vDash,inc:vInc,sto:vSto,outc:vOut,wh:vWh,log:vLog,rep:vRep,day:vDay,usr:vUsr,lgn:vLgn,bk:vBk})[tab]()}
 const typing=()=>{const a=document.activeElement;return!!a&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)&&$('app').contains(a)};
 function sched(){if(rt)return;rt=setTimeout(()=>{rt=0;if(typing()){pendR=true;return}render();gsAuto()},80)}
 document.addEventListener('focusout',()=>{if(pendR)setTimeout(()=>{if(typing())return;pendR=false;render();gsAuto()},700)});
@@ -550,7 +587,7 @@ async function gsSync(manual,over){const c=over||gsCfg();
  if(!c||!c.url||!c.key){if(manual)toast('أدخل رابط تطبيق الويب وكلمة السر أولًا','e');return}
  if(!gsHasData()){if(manual){toast('لا توجد بيانات لإرسالها','e');setGs('لا توجد بيانات لإرسالها. لم يتم تعديل الشيت.',true)}return}
  if(gsBusy){gsDirty=true;return}
- const keys=Object.keys(XN).filter(k=>k!=='l'||isAdmin()),rows={},sigs={};
+ const keys=Object.keys(XN).filter(k=>(k!=='l'&&k!=='d')||isAdmin()),rows={},sigs={};
  keys.forEach(k=>{rows[k]=rowsOf(k);sigs[k]=JSON.stringify(rows[k])});
  const core=isAdmin()?JSON.stringify(rows.l.map(r=>r.filter((_,i)=>i!==6))):'';
  const send=keys.filter(k=>{if(manual)return true;if(sigs[k]===gsLast[k])return false;if(k==='l'&&core===gsLastCore&&Date.now()-gsLastL<600000)return false;return true});
