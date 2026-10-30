@@ -280,6 +280,7 @@ function editV(id){const v=vid(id);if(!v)return;go('inc');const fm=document.quer
 function rowsOf(k){const stt=x=>x.voided?'ملغي':'ساري';
  if(k==='v')return[['المركب','الرصيف','المورد','الصنف','بدء التفريغ','انتهاء التفريغ','الكمية الكلية (طن)','المخزَّن (طن)','المتبقي للتخزين (طن)','ملاحظات','الحالة'],...[...S.v,...S.vV].map(v=>[v.vessel,v.berth||'',v.sup,P(v.p).n,v.ds,v.de,v.q,v.voided?0:stV(v.id),v.voided?0:remV(v.id),v.note||'',stt(v)])];
  if(k==='s')return[['التاريخ','الوردية','المركب','الرصيف','الصنف','المخزن','عدد السيارات','وزن السيارة (طن)','الإجمالي (طن)','ملاحظات','الحالة'],...[...S.s,...S.sV].sort((a,b)=>(a.d||'').localeCompare(b.d||'')).map(x=>{const v=vAny(x.v)||{};return[x.d,SHN(x.sh),v.vessel||'',v.berth||'',P(x.p).n,wn(x.w),x.trucks||'',x.avg||'',x.q,x.note||'',stt(x)]})];
+ if(k==='e')return eRows();
  if(k==='d')return dayRowsAll();
  if(k==='o')return[['التاريخ','الصنف','المركب','مصدر الكمية','المخزن / مخزن الغير','الكمية من المركب (طن)','كمية غير المركب (طن)','نوع غير المركب','الجهة المستلمة','رقم البوليصة','عدد العربيات','السائق','مقاول النقل','رقم السيارة','مبلغ التصفية (لوجستيات)','إيراد الأطنان','إيراد القطع','ملاحظات','الحالة'],...[...S.t,...S.tV].sort((a,b)=>(a.d||'').localeCompare(b.d||'')).map(x=>{const v=x.v?vAny(x.v):null;return[x.d,P(x.p).n,v?v.vessel:'',x.src==='third'?'من مخازن الغير':'من مخازننا',x.src==='third'?(x.tw||''):wn(x.w),x.q||0,x.xq||0,x.xq>0?(x.xt||''):'',x.to||'',x.pol||'',x.tr||1,x.driver||'',x.ct||'',x.car||'',x.settle||0,x.feeT||0,x.feeC||0,x.note||'',stt(x)]})];
  if(k==='l')return[['المستخدم','البريد','التاريخ','وقت الدخول','وقت الخروج','المدة (دقيقة)','آخر نشاط','طريقة الخروج'],...S.l.slice().sort((a,b)=>a.loginMs-b.loginMs).map(x=>[x.name,x.email,fmD(x.loginMs),fmT(x.loginMs),x.logoutMs?fmT(x.logoutMs):'',Math.max(0,Math.round(((x.logoutMs||x.lastMs||x.loginMs)-x.loginMs)/60000)),fmT(x.lastMs),x.logoutMs?(x.method||'يدوي'):'لم يسجل خروج'])];
@@ -294,7 +295,7 @@ function vRep(){const r=rowsOf('g'),head=r[0],body=r.slice(1);
  return`<h2>${ic('list',20)}تقرير المخازن</h2><div class="hint">لكل مركب: الكمية وتواريخ التفريغ والمنصرف من مخازننا ومن مخازن الغير والمتبقي، وكميات غير المركب (مثل السلف) منفصلة.</div><div class="tw"><table style="min-width:1150px"><thead><tr>${head.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${S.v.length?body.map((x,i)=>`<tr${i===body.length-1?' style="font-weight:700;background:var(--h)"':''}>${x.map(c=>`<td${typeof c==='number'?' class="num"':''}>${typeof c==='number'?f(c):esc(c)}</td>`).join('')}</tr>`).join(''):'<tr><td colspan="13" class="emp">لا توجد مراكب بعد</td></tr>'}</tbody></table></div>`}
 function exportCard(){return`<div class="card"><div class="sec">${ic('list',20)}التصدير إلى جوجل شيت</div>
 <div class="hint">اختر الجدول، ثم انسخه والصقه في الخلية A1 في جوجل شيت، أو نزّله كملف CSV واستورده من قائمة ملف ثم استيراد. كل جدول في ورقة مستقلة.</div>
-<div class="fl"><select onchange="xs=this.value;$('xo').value=tsv(xs)"><option value="v"${xs==='v'?' selected':''}>المراكب</option><option value="s"${xs==='s'?' selected':''}>التخزين اليومي</option><option value="r"${xs==='r'?' selected':''}>ملخص الورديات</option><option value="o"${xs==='o'?' selected':''}>المنصرف</option><option value="l"${xs==='l'?' selected':''}>سجل الدخول</option><option value="g"${xs==='g'?' selected':''}>تقرير المخازن</option><option value="d"${xs==='d'?' selected':''}>التقرير اليومي (الإيراد)</option></select></div>
+<div class="fl"><select onchange="xs=this.value;$('xo').value=tsv(xs)"><option value="v"${xs==='v'?' selected':''}>المراكب</option><option value="s"${xs==='s'?' selected':''}>التخزين اليومي</option><option value="r"${xs==='r'?' selected':''}>ملخص الورديات</option><option value="o"${xs==='o'?' selected':''}>المنصرف</option><option value="l"${xs==='l'?' selected':''}>سجل الدخول</option><option value="g"${xs==='g'?' selected':''}>تقرير المخازن</option><option value="d"${xs==='d'?' selected':''}>التقرير اليومي (الإيراد)</option><option value="e"${xs==='e'?' selected':''}>بيانات الإيراد (للشيت)</option></select></div>
 <textarea id="xo" rows="6" readonly onclick="this.select()">${esc(tsv(xs))}</textarea>
 <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn" onclick="cp()">${ic('list',18)}نسخ للصق في جوجل شيت</button><button class="btn alt" onclick="dlCsv()">${ic('down',18)}تنزيل CSV</button></div></div>`}
 
@@ -334,7 +335,7 @@ const all=()=>[...S.s.map(x=>({...x,ty:'inc'})),...S.t.map(x=>({...x,ty:'outc'})
 const fmT=ms=>ms?new Date(ms).toLocaleTimeString('en-GB',{timeZone:'Africa/Cairo'}):'';
 const fmD=ms=>ms?new Date(ms).toLocaleDateString('en-CA',{timeZone:'Africa/Cairo'}):'';
 const MAP={w:'warehouses',v:'vessels',s:'stored',t:'outgoing',x:'products',c:'contractors'};
-const XN={v:'المراكب',s:'التخزين-اليومي',o:'المنصرف',r:'ملخص-الورديات',l:'سجل-الدخول',g:'تقرير المخازن',d:'التقرير اليومي'};
+const XN={v:'المراكب',s:'التخزين-اليومي',o:'المنصرف',r:'ملخص-الورديات',l:'سجل-الدخول',g:'تقرير المخازن',d:'التقرير اليومي',e:'بيانات الإيراد'};
 const AE={'auth/popup-closed-by-user':'تم إغلاق نافذة الدخول قبل الإكمال.','auth/cancelled-popup-request':'تم إلغاء الطلب، حاول مرة أخرى.','auth/popup-blocked':'المتصفح منع نافذة الدخول. اسمح بالنوافذ المنبثقة وحاول مرة أخرى.','auth/network-request-failed':'تعذر الاتصال بالإنترنت.','auth/unauthorized-domain':'هذا الدومين غير مضاف في Authorized domains.','auth/operation-not-allowed':'الدخول بحساب جوجل غير مفعّل في Firebase (Authentication ثم Sign-in method).','auth/too-many-requests':'محاولات كثيرة، حاول لاحقًا.','auth/user-disabled':'هذا الحساب موقوف.','auth/account-exists-with-different-credential':'هذا البريد مسجل بطريقة دخول أخرى.','auth/internal-error':'خطأ داخلي في خدمة الدخول، أعد المحاولة.','permission-denied':'ليس لديك صلاحية لهذه العملية.','unavailable':'تعذر الاتصال بالخادم.'};
 const errTxt=e=>{const c=(e&&e.code)||'';const k=String(c).replace(/^firestore\//,'');return AE[c]||AE[k]||('خطأ: '+(c||(e&&e.message)||e))};
 function fire(p,okMsg){toast(okMsg);Promise.resolve(p).catch(e=>toast('تعذر الحفظ: '+errTxt(e),'e'))}
@@ -447,11 +448,13 @@ function dayRowsAll(){const body=[],g=[0,0,0,0,0,0];
 function dayBody(){const a=dayAgg(dayD),t=a.tot;
  const cards=`<div class="grid g3"><div class="card st"><div class="ic">${ic('box',24)}</div><div><b>${f(t[7])} <small>جنيه</small></b><span>إجمالي إيراد اليوم</span></div></div><div class="card st"><div class="ic">${ic('truck',24)}</div><div><b>${f(t[2])}</b><span>عدد العربيات (بدون اللوجيستية)</span></div></div><div class="card st"><div class="ic">${ic('wheat',24)}</div><div><b>${f(t[3])} <small>طن</small></b><span>الأطنان المنصرفة</span></div></div></div>`;
  const rows=a.rows.map(r=>`<tr><td><b>${esc(r[1])}</b></td><td class="num">${f(r[2])}</td><td class="num">${f(r[3])}</td><td class="num">${f(r[4])}</td><td class="num">${f(r[5])}</td><td class="num">${f(r[6])}</td><td class="num"><b>${f(r[7])}</b></td></tr>`).join('');
- return cards+`<div class="tw" style="margin-top:12px"><table style="min-width:680px"><thead><tr><th>المقاول</th><th>عدد العربيات</th><th>الأطنان</th><th>من مخازننا (طن)</th><th>إيراد الأطنان</th><th>إيراد القطع</th><th>إجمالي الإيراد</th></tr></thead><tbody>${rows||'<tr><td colspan="7" class="emp">لا توجد حركات منصرف في هذا اليوم</td></tr>'}${a.rows.length?`<tr style="font-weight:700;background:var(--h)"><td>إجمالي اليوم</td><td class="num">${f(t[2])}</td><td class="num">${f(t[3])}</td><td class="num">${f(t[4])}</td><td class="num">${f(t[5])}</td><td class="num">${f(t[6])}</td><td class="num">${f(t[7])}</td></tr>`:''}</tbody></table></div>`+(a.lg.tr?`<div class="hint" style="margin-top:10px">عربيات اللوجيستية (خارج الإيراد): ${a.lg.tr} عربية، ${f(a.lg.q)} طن، مبالغ التصفية ${f(a.lg.settle)} جنيه</div>`:'')}
+ const det=S.t.filter(x=>x.d===dayD).sort((x,y)=>(x.ca||0)-(y.ca||0)).map(x=>{const lg=lgOf(x);return`<tr${lg?' style="opacity:.8"':''}><td>${esc(x.ct||'غير محدد')}${lg?' <span class="bd in">لوجستيات</span>':''}</td><td>${esc(x.driver||'—')}</td><td dir="ltr" style="text-align:right">${esc(x.car||'—')}</td><td>${esc(x.pol||'—')}</td><td class="num">${f(x.tr||1)}</td><td class="num">${f(x.q||0)}</td><td class="num">${lg?'—':f(x.feeT||0)}</td><td class="num">${lg?'—':f(x.feeC||0)}</td><td class="num"><b>${lg?(x.settle>0?'تصفية '+f(x.settle):'—'):f(r2((x.feeT||0)+(x.feeC||0)))}</b></td></tr>`}).join('');
+ return cards+`<div class="tw" style="margin-top:12px"><table style="min-width:680px"><thead><tr><th>المقاول</th><th>عدد العربيات</th><th>الأطنان</th><th>من مخازننا (طن)</th><th>إيراد الأطنان</th><th>إيراد القطع</th><th>إجمالي الإيراد</th></tr></thead><tbody>${rows||'<tr><td colspan="7" class="emp">لا توجد حركات منصرف في هذا اليوم</td></tr>'}${a.rows.length?`<tr style="font-weight:700;background:var(--h)"><td>إجمالي اليوم</td><td class="num">${f(t[2])}</td><td class="num">${f(t[3])}</td><td class="num">${f(t[4])}</td><td class="num">${f(t[5])}</td><td class="num">${f(t[6])}</td><td class="num">${f(t[7])}</td></tr>`:''}</tbody></table></div>`+(a.lg.tr?`<div class="hint" style="margin-top:10px">عربيات اللوجيستية (خارج الإيراد): ${a.lg.tr} عربية، ${f(a.lg.q)} طن، مبالغ التصفية ${f(a.lg.settle)} جنيه</div>`:'')+`<h2 style="margin-top:18px">${ic('truck',20)}تفاصيل العربيات والسائقين</h2><div class="tw"><table style="min-width:920px"><thead><tr><th>المقاول</th><th>اسم السائق</th><th>رقم السيارة</th><th>رقم البوليصة</th><th>عدد العربيات</th><th>الأطنان</th><th>إيراد الأطنان</th><th>إيراد القطع</th><th>الإجمالي</th></tr></thead><tbody>${det||'<tr><td colspan="9" class="emp">لا توجد حركات في هذا اليوم</td></tr>'}</tbody></table></div>`}
 function vDay(){const R=rates();return`<h2>${ic('cal',20)}الإيراد اليومي</h2><div class="fl" style="max-width:260px"><input type="date" value="${dayD}" onchange="dayD=this.value||today();$('dy').innerHTML=dayBody()"></div><div id="dy">${dayBody()}</div><div class="hint" style="margin-top:12px">الأسعار الحالية: ${f(R.ton)} جنيه للطن من مخازننا فقط، و${f(R.cut)} جنيه للقطع لكل عربية مقاول عند التحميل من مخازننا. لا يُحسب إيراد على مخازن الغير ولا على عربيات اللوجيستية. تعديل الأسعار من تبويب المخازن والأصناف ولا يؤثر على الحركات السابقة.</div>`}
 function saveRates(e){e.preventDefault();if(!isAdmin())return toast('هذه العملية للمدير فقط','e');const F=e.target.elements,t=parseFloat(F.rt.value),c=parseFloat(F.rc.value);
  if(!(t>=0)||!(c>=0))return toast('أدخل أسعارًا صحيحة','e');fire(DB.set('meta','rates',{ton:r2(t),cut:r2(c),ca:Date.now()}),'تم حفظ الأسعار (تسري على الحركات الجديدة فقط)')}
 function togLg(id){if(!isAdmin())return;const c=(S.cAll||[]).find(x=>x.id===id);if(!c)return;fire(DB.update('contractors',id,{lg:!c.lg}),c.lg?'لم يعد المقاول لوجستيات':'تم تحديد المقاول كلوجستيات')}
+function eRows(){return[['التاريخ','المقاول','لوجستيات','اسم السائق','رقم السيارة','رقم البوليصة','عدد العربيات','الأطنان','من مخازننا (طن)','إيراد الأطنان','إيراد القطع','إجمالي الإيراد','مبلغ التصفية','العميل','المصدر'],...S.t.slice().sort((a,b)=>(a.d||'').localeCompare(b.d||'')||(a.ca||0)-(b.ca||0)).map(x=>{const lg=lgOf(x);return[x.d,x.ct||'غير محدد',lg?'نعم':'لا',x.driver||'',x.car||'',x.pol||'',x.tr||1,x.q||0,x.src==='third'?0:(x.q||0),x.feeT||0,x.feeC||0,r2((x.feeT||0)+(x.feeC||0)),x.settle||0,x.to||'',x.src==='third'?'مخازن الغير':'مخازننا']})]}
 function tabsFor(){const t=[['dash','لوحة التحكم','dash'],['inc','المراكب','ship'],['sto','التخزين اليومي','box'],['outc','المنصرف','up'],['rep','تقرير المخازن','list']];
  if(isAdmin())t.push(['wh','المخازن والأصناف','wh'],['day','الإيراد اليومي','cal']);t.push(['log','سجل الحركات','list']);
  if(isAdmin())t.push(['usr','المستخدمون','user'],['lgn','سجل الدخول','cal'],['bk','التصدير والاستيراد','sheet']);return t}
@@ -513,12 +516,84 @@ function boot(){DB.onAuth(u=>{
  if(!u){stopAll();ME=null;SID='';document.body.classList.remove('sup');$('hb').style.display='none';updSes();render();const m=gateMsg,er=gateErr;gateMsg='';gateErr=0;showGate('phone',m,er);return}
  enter(u)})}
 
-const GSCODE=`function out_(o) {
+const GSCODE=`var DATA_SHEET = 'بيانات الإيراد';
+var DASH_SHEET = 'الإيراد اليومي';
+
+function out_(o) {
   return ContentService.createTextOutput(JSON.stringify(o))
     .setMimeType(ContentService.MimeType.JSON);
 }
 function doGet() {
   return out_({ ok: true, ready: true });
+}
+function serial_(s) {
+  var p = String(s).split('-');
+  if (p.length !== 3) return s;
+  return Math.round((Date.UTC(+p[0], +p[1] - 1, +p[2]) - Date.UTC(1899, 11, 30)) / 86400000);
+}
+function writeSheets_(map) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var counts = {};
+  Object.keys(map).forEach(function (name) {
+    var rows = map[name];
+    var sh = ss.getSheetByName(name) || ss.insertSheet(name);
+    sh.clearContents();
+    if (rows.length && rows[0].length) {
+      if (name === DATA_SHEET) {
+        rows = rows.map(function (r, i) {
+          return i === 0 ? r : [serial_(r[0])].concat(r.slice(1));
+        });
+      }
+      sh.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
+      if (name === DATA_SHEET && rows.length > 1) {
+        sh.getRange(2, 1, rows.length - 1, 1).setNumberFormat('yyyy-mm-dd');
+      }
+    }
+    counts[name] = Math.max(rows.length - 1, 0);
+  });
+  if (map[DATA_SHEET]) ensureDashboard_(ss);
+  return counts;
+}
+function ensureDashboard_(ss) {
+  if (ss.getSheetByName(DASH_SHEET)) return;
+  var sh = ss.insertSheet(DASH_SHEET, 0);
+  var D = "'" + DATA_SHEET + "'!";
+  var sum = function (col, flag) {
+    return '=SUMIFS(' + D + col + ':' + col + ',' + D + 'A:A,$B$2,' + D + 'C:C,"' + flag + '")';
+  };
+  sh.setRightToLeft(true);
+  sh.setHiddenGridlines(true);
+  sh.getRange('A1:H1').merge().setValue('الإيراد اليومي')
+    .setFontSize(22).setFontWeight('bold').setFontColor('#ffffff').setBackground('#0b6b73')
+    .setHorizontalAlignment('center').setVerticalAlignment('middle');
+  sh.setRowHeight(1, 48);
+  [['A2', 'التاريخ'], ['D2', 'اليوم'], ['G2', 'عدد العربيات'],
+   ['A3', 'الأطنان'], ['D3', 'إيراد الأطنان'], ['G3', 'إيراد القطع'],
+   ['A4', 'إجمالي إيراد اليوم'], ['D4', 'عربيات اللوجيستية'], ['G4', 'مبالغ التصفية']
+  ].forEach(function (l) {
+    sh.getRange(l[0]).setValue(l[1]).setFontWeight('bold').setBackground('#e8f1f2').setHorizontalAlignment('center');
+  });
+  ['B2:C2', 'E2:F2', 'B3:C3', 'E3:F3', 'B4:C4', 'E4:F4'].forEach(function (a) {
+    sh.getRange(a).merge().setHorizontalAlignment('center').setFontWeight('bold').setFontSize(13);
+  });
+  sh.getRange('B2').setFormula('=TODAY()').setNumberFormat('yyyy-mm-dd').setBackground('#fff8e1');
+  sh.getRange('B2').setDataValidation(SpreadsheetApp.newDataValidation()
+    .requireDate().setAllowInvalid(false).setHelpText('اضغط مرتين لاختيار التاريخ من التقويم').build());
+  sh.getRange('E2').setFormula('=CHOOSE(WEEKDAY($B$2),"الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت")');
+  sh.getRange('H2').setFormula(sum('G', 'لا'));
+  sh.getRange('B3').setFormula(sum('H', 'لا'));
+  sh.getRange('E3').setFormula(sum('J', 'لا'));
+  sh.getRange('H3').setFormula(sum('K', 'لا'));
+  sh.getRange('B4').setFormula(sum('L', 'لا')).setFontSize(16);
+  sh.getRange('E4').setFormula(sum('G', 'نعم'));
+  sh.getRange('H4').setFormula(sum('M', 'نعم'));
+  sh.getRange('B3:H4').setNumberFormat('#,##0.##');
+  sh.getRange('A6:H6').setValues([['المقاول', 'اسم السائق', 'رقم السيارة', 'رقم البوليصة', 'الأطنان', 'إيراد الأطنان', 'إيراد القطع', 'الإجمالي']])
+    .setFontWeight('bold').setBackground('#0b6b73').setFontColor('#ffffff').setHorizontalAlignment('center');
+  sh.getRange('A7').setFormula('=IFERROR(FILTER({' + D + 'B2:B,' + D + 'D2:D,' + D + 'E2:E,' + D + 'F2:F,' + D + 'H2:H,' + D + 'J2:J,' + D + 'K2:K,' + D + 'L2:L},' + D + 'A2:A=$B$2,' + D + 'C2:C="لا"),"لا توجد حركات منصرف في هذا اليوم")');
+  sh.getRange('E7:H1000').setNumberFormat('#,##0.##');
+  sh.setColumnWidths(1, 8, 135);
+  sh.setFrozenRows(6);
 }
 function doPost(e) {
   var lock = LockService.getScriptLock();
@@ -528,18 +603,7 @@ function doPost(e) {
     var key = PropertiesService.getScriptProperties().getProperty('KEY');
     if (!key) return out_({ ok: false, error: 'no_key' });
     if (d.key !== key) return out_({ ok: false, error: 'auth' });
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var counts = {};
-    Object.keys(d.sheets).forEach(function (name) {
-      var rows = d.sheets[name];
-      var sh = ss.getSheetByName(name) || ss.insertSheet(name);
-      sh.clearContents();
-      if (rows.length && rows[0].length) {
-        sh.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
-      }
-      counts[name] = Math.max(rows.length - 1, 0);
-    });
-    return out_({ ok: true, counts: counts });
+    return out_({ ok: true, counts: writeSheets_(d.sheets) });
   } catch (err) {
     return out_({ ok: false, error: String(err) });
   } finally {
@@ -551,7 +615,7 @@ const gsValid=u=>/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test
 let gsLast={},gsLastCore='',gsLastL=0,gsRetryT=0;
 function setGs(m,e){const el=$('gss');if(el){el.textContent=m;el.style.color=e?'var(--out)':'var(--m)'}}
 function gsOpen(){if(!isAdmin())return;const c=gsCfg()||{};$('gsm').innerHTML=`<div class="box"><div class="sec">${ic('sheet',22)}ربط جوجل شيت (دائم وتلقائي)</div>
-<ol class="hint" style="line-height:2;padding-inline-start:20px;margin:0 0 10px"><li>افتح جوجل شيت جديد ثم الإضافات ثم Apps Script، والصق الكود التالي مكان الكود الموجود.</li><li>من إعدادات المشروع (Project Settings) أضف في Script Properties مفتاحًا اسمه KEY وقيمته كلمة سر تختارها.</li><li>اضغط نشر ثم عملية نشر جديدة ثم تطبيق ويب. نفّذ بصفتي، والوصول: أي شخص.</li><li>انسخ رابط التطبيق (ينتهي بـ /exec) والصقه هنا مع نفس كلمة السر، ثم اضغط حفظ. تُحفظ الإعدادات لكل الأجهزة وتعمل المزامنة تلقائيًا بعدها.</li></ol>
+<ol class="hint" style="line-height:2;padding-inline-start:20px;margin:0 0 10px"><li>افتح جوجل شيت جديد ثم الإضافات ثم Apps Script، والصق الكود التالي مكان الكود الموجود.</li><li>من إعدادات المشروع (Project Settings) أضف في Script Properties مفتاحًا اسمه KEY وقيمته كلمة سر تختارها.</li><li>اضغط نشر ثم عملية نشر جديدة ثم تطبيق ويب. نفّذ بصفتي، والوصول: أي شخص. (وعند تحديث الكود لاحقًا: نشر ثم إدارة عمليات النشر ثم تعديل ثم إصدار جديد.)</li><li>انسخ رابط التطبيق (ينتهي بـ /exec) والصقه هنا مع نفس كلمة السر، ثم اضغط حفظ. تُحفظ الإعدادات لكل الأجهزة وتعمل المزامنة تلقائيًا بعدها، فلا تحتاج لضغط مزامنة بعد الإغلاق.</li><li>بعد أول مزامنة تظهر في الشيت ورقة <b>الإيراد اليومي</b> (أول ورقة): اضغط مرتين على خلية التاريخ لاختيار اليوم من التقويم، فيظهر اسم اليوم وعدد العربيات والإيراد وتفاصيل السائقين.</li></ol>
 <textarea id="gsc" rows="10" readonly onclick="this.select()">${esc(GSCODE)}</textarea>
 <div style="margin:8px 0 14px"><button class="btn alt sm" onclick="gsCopy()">${ic('list',14)}نسخ الكود</button></div>
 <label>رابط تطبيق الويب<input id="gsu" dir="ltr" placeholder="https://script.google.com/macros/s/.../exec" value="${esc(c.url||'')}"></label>
@@ -587,7 +651,7 @@ async function gsSync(manual,over){const c=over||gsCfg();
  if(!c||!c.url||!c.key){if(manual)toast('أدخل رابط تطبيق الويب وكلمة السر أولًا','e');return}
  if(!gsHasData()){if(manual){toast('لا توجد بيانات لإرسالها','e');setGs('لا توجد بيانات لإرسالها. لم يتم تعديل الشيت.',true)}return}
  if(gsBusy){gsDirty=true;return}
- const keys=Object.keys(XN).filter(k=>(k!=='l'&&k!=='d')||isAdmin()),rows={},sigs={};
+ const keys=Object.keys(XN).filter(k=>k!=='l'||isAdmin()),rows={},sigs={};
  keys.forEach(k=>{rows[k]=rowsOf(k);sigs[k]=JSON.stringify(rows[k])});
  const core=isAdmin()?JSON.stringify(rows.l.map(r=>r.filter((_,i)=>i!==6))):'';
  const send=keys.filter(k=>{if(manual)return true;if(sigs[k]===gsLast[k])return false;if(k==='l'&&core===gsLastCore&&Date.now()-gsLastL<600000)return false;return true});
@@ -610,7 +674,7 @@ async function gsSync(manual,over){const c=over||gsCfg();
   gsDot('er');gsDirty=true;clearTimeout(gsRetryT);gsRetryT=setTimeout(()=>gsSync(false),60000);if(manual)toast('فشلت المزامنة','e')}
  finally{gsBusy=false}}
 function gsAuto(){const c=gsCfg();if(!c||c.on===false||!['w','v','s','t','x','c','m'].every(k=>loaded[k])||(isAdmin()&&!(loaded.l&&loaded.u)))return;
- clearTimeout(gsT);gsT=setTimeout(()=>gsSync(false),2500+Math.floor(Math.random()*2500))}
+ clearTimeout(gsT);gsT=setTimeout(()=>gsSync(false),800+Math.floor(Math.random()*700))}
 addEventListener('online',()=>{if(gsDirty)gsSync(false)});
 
 $('auth').className='on';$('auth').innerHTML='<div class="box emp">جارٍ التحميل...</div>';
