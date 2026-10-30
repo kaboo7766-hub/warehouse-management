@@ -25,42 +25,65 @@ service cloud.firestore {
     function qtyOk() {
       return request.resource.data.q is number && request.resource.data.q > 0;
     }
+    function outOk() {
+      return request.resource.data.q is number && request.resource.data.q >= 0
+        && request.resource.data.get('xq', 0) is number && request.resource.data.get('xq', 0) >= 0
+        && (request.resource.data.q > 0 || request.resource.data.get('xq', 0) > 0);
+    }
+    function onlyVoid() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['voided', 'voidedBy', 'voidedMs']);
+    }
+
+    // لا يُسمح بالحذف نهائيًا في أي مجموعة: الإلغاء والإخفاء تعديل فقط، والسجل محفوظ دائمًا.
 
     match /allowed/{p} {
       allow get: if signedIn() && p == mail();
-      allow list, create, update, delete: if isAdmin();
+      allow list, create, update: if isAdmin();
+      allow delete: if false;
     }
     match /meta/{id} {
       allow read: if isUser();
-      allow write: if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if false;
     }
     match /warehouses/{id} {
       allow read: if isUser();
-      allow write: if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if false;
     }
     match /products/{id} {
       allow read: if isUser();
-      allow write: if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if false;
+    }
+    match /contractors/{id} {
+      allow read: if isUser();
+      allow create, update: if isAdmin();
+      allow delete: if false;
     }
     match /vessels/{id} {
       allow read: if isUser();
       allow create: if isUser() && qtyOk();
-      allow update, delete: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if false;
     }
     match /stored/{id} {
       allow read: if isUser();
       allow create: if isUser() && qtyOk();
-      allow delete: if isAdmin();
+      allow update: if isAdmin() && onlyVoid();
+      allow delete: if false;
     }
     match /outgoing/{id} {
       allow read: if isUser();
-      allow create: if isUser() && qtyOk();
-      allow delete: if isAdmin();
+      allow create: if isUser() && outOk();
+      allow update: if isAdmin() && onlyVoid();
+      allow delete: if false;
     }
     match /logins/{id} {
       allow read: if isAdmin() || (isUser() && resource.data.uid == request.auth.uid);
       allow create: if isUser() && request.resource.data.uid == request.auth.uid;
       allow update: if isUser() && resource.data.uid == request.auth.uid;
+      allow delete: if false;
     }
   }
 }
