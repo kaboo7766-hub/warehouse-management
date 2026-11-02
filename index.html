@@ -915,7 +915,7 @@ try{
  window.DB={
   onAuth(cb){AU.onAuthStateChanged(auth,u=>cb(u?{uid:u.uid,email:String(u.email||'').toLowerCase(),name:u.displayName||'',verified:u.emailVerified!==false}:null))},
   async google(){const p=new AU.GoogleAuthProvider();p.setCustomParameters({prompt:'select_account'});
-   try{await AU.singinwithredirect(auth,p)}catch(e){if(e&&(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment')){await AU.signInWithRedirect(auth,p);return}throw e}},
+   try{await AU.signInWithRedirect(auth, p)}catch(e){if(e&&(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment')){await AU.signInWithRedirect(auth,p);return}throw e}},
   signOut(){return AU.signOut(auth)},
   listen(col,cb,err){return FS.onSnapshot(FS.collection(db,col),s=>cb(s.docs.map(d=>({...d.data(),id:d.id}))),err)},
   set(col,id,d){return FS.setDoc(FS.doc(db,col,id),d)},
