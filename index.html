@@ -429,7 +429,7 @@ function vLgn(){
  return`<h2>${ic('cal',20)}سجل الدخول والخروج</h2><div class="tw"><table style="min-width:640px"><thead><tr><th>المستخدم</th><th>التاريخ</th><th>وقت الدخول</th><th>وقت الخروج</th><th>المدة</th><th>ملاحظة</th></tr></thead><tbody>${rows||'<tr><td colspan="6" class="emp">لا توجد سجلات</td></tr>'}</tbody></table></div>`}
 function vBk(){return exportCard()+`<div class="card" style="margin-top:12px"><div class="sec">${ic('sheet',20)}ربط جوجل شيت</div><div class="hint">ربط دائم يعمل تلقائيًا لكل الأجهزة: يُحفظ مرة واحدة وتُرسل البيانات للشيت عند أي تغيير ومن أي مستخدم، بدون ضغط مزامنة.</div><button class="btn alt" onclick="gsOpen()">${ic('sheet',18)}إعدادات الربط</button></div>
 <div class="card" style="margin-top:12px"><div class="sec">${ic('down',20)}استيراد بيانات من النسخة القديمة</div><div class="hint">الصق النسخة الاحتياطية من النسخة القديمة. يُضاف المحتوى للبيانات الحالية ولا يحذف شيئًا.</div><textarea id="bki" rows="5" placeholder="الصق النسخة هنا">${esc(bkv)}</textarea><div style="margin-top:10px"><button class="btn" onclick="importData()">${ic('down',18)}${pend==='imp'?'تأكيد الاستيراد؟':'استيراد'}</button></div></div>`}
-function dlCsv(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv(xs)],{type:'text/csv;charset=utf-8'}));a.download=XN[xs]+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),3000)}
+function dlCsv(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv(xs)],{type:'text/csv;charset=utf-8'}));a.download=XN[xs]+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
 
 let dayD=today();
 const r2=n=>Math.round(n*100)/100;
@@ -447,7 +447,7 @@ function dayAgg(date){const m={},lg={tr:0,q:0,settle:0};
  return{rows:rows,tot:[date,'إجمالي اليوم',s(2),r3(s(3)),r3(s(4)),s(5),s(6),s(7)],lg:lg}}
 function dayRowsAll(fr,to){const body=[],g=[0,0,0,0,0,0];
  uq(S.t.map(x=>x.d)).sort().filter(d=>(!fr||d>=fr)&&(!to||d<=to)).forEach(d=>{const a=dayAgg(d);if(!a.rows.length)return;a.rows.forEach(r=>body.push(r));body.push(a.tot);for(let i=0;i<6;i++)g[i]=r2(g[i]+a.tot[i+2])});
- return[['التاريخ','المقاول','عدد العربيات','الأطنان (كل المصادر)','من مخازننا (طن)','إيراد الأطنان (جنيه)','إيراد القطع (جنيه)','إجمالي الإيراد (جنيه)'],...body,['الإجمالي الكلي','',...g]]}
+ return[['التاريخ','المقاول','عدد العربيات','الأطنان (كل المصادر)','من مخازننا (طن)','إيراد الأطنان (جنيه)','إيراد القطع (جنيه)','إجمالي الإيراد (جنيه)'],...body,['الإجمالي الكلي','',...g]}
 function dayBody(){const a=dayAgg(dayD),t=a.tot;
  const cards=`<div class="grid g3"><div class="card st"><div class="ic">${ic('box',24)}</div><div><b>${f(t[7])} <small>جنيه</small></b><span>إجمالي إيراد اليوم</span></div></div><div class="card st"><div class="ic">${ic('truck',24)}</div><div><b>${f(t[2])}</b><span>عدد العربيات (بدون اللوجيستية)</span></div></div><div class="card st"><div class="ic">${ic('wheat',24)}</div><div><b>${f(t[3])} <small>طن</small></b><span>الأطنان المنصرفة</span></div></div></div>`;
  const rows=a.rows.map(r=>`<tr><td><b>${esc(r[1])}</b></td><td class="num">${f(r[2])}</td><td class="num">${f(r[3])}</td><td class="num">${f(r[4])}</td><td class="num">${f(r[5])}</td><td class="num">${f(r[6])}</td><td class="num"><b>${f(r[7])}</b></td></tr>`).join('');
@@ -506,7 +506,7 @@ const XS=(()=>{const bd='<color rgb="FFCBD5DB"/>',al=(h,w)=>'<alignment horizont
  const xfs=[xf(0,0,0,0,al('general')),xf(0,1,2,0,al('center')),xf(0,2,0,0,al('center')),xf(0,3,2,1,al('center',1)),xf(0,0,0,1,al('general',1)),xf(0,0,3,1,al('general',1)),xf(164,0,0,1,al('center')),xf(164,0,3,1,al('center')),xf(165,0,0,1,al('center')),xf(165,0,3,1,al('center')),xf(0,4,4,2,al('center')),xf(164,4,4,2,al('center')),xf(0,5,0,0,al('general')),xf(0,4,4,1,al('general',1)),xf(164,4,4,1,al('center')),xf(165,4,4,1,al('center'))];
  const bdr=t=>'<border><left style="thin">'+bd+'</left><right style="thin">'+bd+'</right><top style="'+t+'">'+(t==='medium'?'<color rgb="FF0B6B73"/>':bd)+'</top><bottom style="thin">'+bd+'</bottom><diagonal/></border>';
  const fill=c=>'<fill><patternFill patternType="solid"><fgColor rgb="FF'+c+'"/><bgColor indexed="64"/></patternFill></fill>';
- return'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0.##"/><numFmt numFmtId="165" formatCode="yyyy-mm-dd"/></numFmts><fonts count="6"><font><sz val="11"/><name val="Arial"/></font><font><b/><sz val="18"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><sz val="10"/><color rgb="FF5B6B78"/><name val="Arial"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><b/><sz val="11"/><name val="Arial"/></font><font><i/><sz val="9"/><color rgb="FF5B6B78"/><name val="Arial"/></font></fonts><fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>'+fill('0B6B73')+fill('F3F8F9')+fill('DCEBEC')+'</fills><borders count="3"><border><left/><right/><top/><bottom/><diagonal/></border>'+bdr('thin')+bdr('medium')+'</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="'+xfs.length+'">'+xfs.join('')+'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'})();
+ return'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0.##"/><numFmt numFmtId="165" formatCode="yyyy-mm-dd"/></numFmts><fonts count="6"><font><sz val="11"/><name val="Arial"/></font><font><b/><sz val="18"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><sz val="10"/><color rgb="FF5B6B78"/><name val="Arial"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><b/><sz val="11"/><color rgb="FF000000"/><name val="Arial"/></font><font><i/><sz val="9"/><color rgb="FF5B6B78"/><name val="Arial"/></font></fonts><fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>'+fill('0B6B73')+fill('F3F8F9')+fill('DCEBEC')+'</fills><borders count="3"><border><left/><right/><top/><bottom/><diagonal/></border>'+bdr('thin')+bdr('medium')+'</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="'+xfs.length+'">'+xfs.join('')+'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'})();
 function xlsxBuild(d){const nc=d.head.length,L=colL,lastC=L(nc-1);
  const xe=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'');
  const serial=s=>{const p=s.split('-');return Math.round((Date.UTC(+p[0],+p[1]-1,+p[2])-Date.UTC(1899,11,30))/86400000)};
@@ -914,22 +914,20 @@ try{
  let db;try{db=FS.initializeFirestore(app,{localCache:FS.persistentLocalCache({tabManager:FS.persistentMultipleTabManager()})})}catch(e){db=FS.getFirestore(app)}
  window.DB={
   onAuth(cb){AU.onAuthStateChanged(auth,u=>cb(u?{uid:u.uid,email:String(u.email||'').toLowerCase(),name:u.displayName||'',verified:u.emailVerified!==false}:null))},
-async google(){
-  const p = new AU.GoogleAuthProvider();
-  p.setCustomParameters({prompt: 'select_account'});
-  try {
-    // استخدام النافذة المنبثقة مباشرة
+  async google(){
+   const p=new AU.GoogleAuthProvider();
+   p.setCustomParameters({prompt:'select_account'});
+   try{
     const result = await AU.signInWithPopup(auth, p);
     return result.user;
-  } catch(e) {
-    // إذا تم حظر النافذة المنبثقة بواسطة المتصفح، يمكنك الانتقال لإعادة التوجيه كحل بديل احتياطي
-    if (e && e.code === 'auth/popup-blocked') {
-      await AU.signInWithRedirect(auth, p);
-      return;
+   }catch(e){
+    if(e && e.code==='auth/popup-blocked'){
+     await AU.signInWithRedirect(auth, p);
+     return;
     }
     throw e;
-  }
-}
+   }
+  },
   signOut(){return AU.signOut(auth)},
   listen(col,cb,err){return FS.onSnapshot(FS.collection(db,col),s=>cb(s.docs.map(d=>({...d.data(),id:d.id}))),err)},
   set(col,id,d){return FS.setDoc(FS.doc(db,col,id),d)},
@@ -938,7 +936,6 @@ async google(){
   async get(col,id){const s=await FS.getDoc(FS.doc(db,col,id));return s.exists()?{...s.data(),id:s.id}:null},
   async batch(ops){for(let i=0;i<ops.length;i+=400){const b=FS.writeBatch(db);ops.slice(i,i+400).forEach(o=>{const r=FS.doc(db,o.c,o.id);if(o.t==='del')b.delete(r);else if(o.t==='upd')b.update(r,o.d);else b.set(r,o.d)});await b.commit()}}
  };
- AU.getRedirectResult(auth).catch(e=>dispatchEvent(new CustomEvent('db-autherr',{detail:e})));
  dispatchEvent(new Event('db-ready'));
 }catch(e){window.DB_ERR=String(e&&e.message||e);dispatchEvent(new Event('db-fail'))}
 </script>
