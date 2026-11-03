@@ -587,13 +587,16 @@ function sched(){if(rt)return;rt=setTimeout(()=>{rt=0;if(typing()){pendR=true;re
 document.addEventListener('focusout',()=>{if(pendR)setTimeout(()=>{if(typing())return;pendR=false;render();gsAuto()},700)});
 
 function stopAll(){unsubs.forEach(u=>{try{u()}catch(e){}});unsubs=[];loaded={};loadErr='';seedChecked=false;S=emptyS();syncPR()}
+let lastRecheck=0;
+async function recheckAccess(){if(!ME||Date.now()-lastRecheck<30000)return;lastRecheck=Date.now();
+ try{const al=await DB.get('allowed',ME.email);if(ME.email!==ADMIN&&(!al||al.active===false)){gateMsg='تم إيقاف هذا الحساب أو إزالته. اطلب من المدير تفعيله.';gateErr=1;await doLogout()}}catch(e){}}
 function startListeners(){stopAll();const cols={...MAP,m:'meta'};if(isAdmin()){cols.u='allowed';cols.l='logins'}
  Object.keys(cols).forEach(k=>{unsubs.push(DB.listen(cols[k],rows=>{rows=rows.sort((a,b)=>(a.ca||0)-(b.ca||0));
   if(k==='s'||k==='t'||k==='v'){S[k]=rows.filter(x=>!x.voided);S[k+'V']=rows.filter(x=>x.voided)}
   else if(k==='w'||k==='x'||k==='c'){S[k+'All']=rows;S[k]=rows.filter(x=>!x.hidden)}
   else S[k]=rows;
   if(k==='x')syncPR();loaded[k]=1;
-  if(k==='w'&&!seedChecked){seedChecked=true;if(isAdmin()&&rows.length===0)seed()}sched()},e=>{loadErr=errTxt(e)+' ('+cols[k]+')';toast('تعذر قراءة البيانات ('+cols[k]+'): '+errTxt(e),'e');sched()}))})}
+  if(k==='w'&&!seedChecked){seedChecked=true;if(isAdmin()&&rows.length===0)seed()}sched()},e=>{loadErr=errTxt(e)+' ('+cols[k]+')';toast('تعذر قراءة البيانات ('+cols[k]+'): '+errTxt(e),'e');if(e&&e.code==='permission-denied')recheckAccess();sched()}))})}
 async function seed(){try{if(await DB.get('meta','seeded'))return;const now=Date.now();
  const ops=PR.slice(0,5).map((p,i)=>({t:'set',c:'warehouses',id:'w'+(i+1),d:{id:'w'+(i+1),n:'مخزن '+(i+1),p:p.id,ca:now+i}}));
  ops.push({t:'set',c:'meta',id:'seeded',d:{ok:true,ca:now}});await DB.batch(ops)}catch(e){}}
@@ -634,7 +637,8 @@ function boot(){DB.onAuth(u=>{
  if(!u){RX.dirty=false;stopAll();ME=null;SID='';document.body.classList.remove('sup');$('hb').style.display='none';updSes();render();const m=gateMsg,er=gateErr;gateMsg='';gateErr=0;showGate('phone',m,er);return}
  enter(u)})}
 
-const GSCODE=`var DATA_SHEET = 'بيانات الإيراد';
+const GSCODE=`var KEY_VALUE = '__KEY__';
+var DATA_SHEET = 'بيانات الإيراد';
 var DASH_SHEET = 'الإيراد اليومي';
 var RAW = 'خام - ';
 var VER = 'v4';
@@ -654,8 +658,12 @@ function out_(o) {
   return ContentService.createTextOutput(JSON.stringify(o))
     .setMimeType(ContentService.MimeType.JSON);
 }
+function getKey_() {
+  if (KEY_VALUE && KEY_VALUE.indexOf('__KEY') !== 0) return KEY_VALUE;
+  return PropertiesService.getScriptProperties().getProperty('KEY') || '';
+}
 function doGet() {
-  return out_({ ok: true, ready: true });
+  return out_({ ok: true, ready: true, keySet: !!getKey_() });
 }
 function serial_(s) {
   var p = String(s).split('-');
@@ -822,9 +830,10 @@ function doPost(e) {
   lock.waitLock(20000);
   try {
     var d = JSON.parse(e.postData.contents);
-    var key = PropertiesService.getScriptProperties().getProperty('KEY');
+    var key = getKey_();
     if (!key) return out_({ ok: false, error: 'no_key' });
     if (d.key !== key) return out_({ ok: false, error: 'auth' });
+    if (d.ping) return out_({ ok: true, pong: true });
     return out_({ ok: true, counts: writeSheets_(d.sheets) });
   } catch (err) {
     return out_({ ok: false, error: String(err) });
@@ -836,19 +845,21 @@ const gsCfg=()=>{const g=(S.m||[]).find(x=>x.id==='gs');return g&&g.url&&g.key?g
 const gsValid=u=>/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(u);
 let gsLast={},gsLastCore='',gsLastL=0,gsRetryT=0;
 function setGs(m,e){const el=$('gss');if(el){el.textContent=m;el.style.color=e?'var(--out)':'var(--m)'}}
-function gsOpen(){if(!isAdmin())return;const c=gsCfg()||{};$('gsm').innerHTML=`<div class="box"><div class="sec">${ic('sheet',22)}ربط جوجل شيت (دائم وتلقائي)</div>
-<ol class="hint" style="line-height:2;padding-inline-start:20px;margin:0 0 10px"><li>افتح جوجل شيت جديد ثم الإضافات ثم Apps Script، والصق الكود التالي مكان الكود الموجود.</li><li>من إعدادات المشروع (Project Settings) أضف في Script Properties مفتاحًا اسمه KEY وقيمته كلمة سر تختارها.</li><li>اضغط نشر ثم عملية نشر جديدة ثم تطبيق ويب. نفّذ بصفتي، والوصول: أي شخص. (وعند تحديث الكود لاحقًا: نشر ثم إدارة عمليات النشر ثم تعديل ثم إصدار جديد.)</li><li>انسخ رابط التطبيق (ينتهي بـ /exec) والصقه هنا مع نفس كلمة السر، ثم اضغط حفظ. تُحفظ الإعدادات لكل الأجهزة وتعمل المزامنة تلقائيًا بعدها، فلا تحتاج لضغط مزامنة بعد الإغلاق.</li><li>بعد أول مزامنة تظهر في الشيت ورقة <b>الإيراد اليومي</b> (أول ورقة): اضغط مرتين على خلية التاريخ لاختيار اليوم من التقويم، فيظهر اسم اليوم وعدد العربيات والإيراد وتفاصيل السائقين.</li><li>كل ورقة بيانات (المنصرف، التخزين، المراكب، الورديات، الدخول) في أعلاها خلية <b>B2</b> للبحث بالتاريخ: اكتب التاريخ فيظهر تحته كل ما حدث في اليوم بكل بياناته، واتركها فارغة لعرض الكل. الصفوف الخمسة العلوية محفوظة ولا تمسّها المزامنة، والبيانات الخام في أوراق مخفية اسمها تبدأ بـ «خام -».</li></ol>
-<textarea id="gsc" rows="10" readonly onclick="this.select()">${esc(GSCODE)}</textarea>
-<div style="margin:8px 0 14px"><button class="btn alt sm" onclick="gsCopy()">${ic('list',14)}نسخ الكود</button></div>
+const gsCode=k=>GSCODE.split("'__KEY__'").join(k?JSON.stringify(k):"'__KEY__'");
+function gsKeyIn(){const k=$('gsk').value.trim();$('gsc').value=gsCode(k)}
+function gsOpen(){if(!isAdmin())return;const c=gsCfg()||{};$('gsm').innerHTML=`<div class="box"><div class="sec">${ic('sheet',22)}ربط جوجل شيت عبر Google Apps Script</div>
+<ol class="hint" style="line-height:2;padding-inline-start:20px;margin:0 0 10px"><li>اكتب <b>كلمة سر</b> من اختيارك في الخانة الأولى (تُدمج تلقائيًا داخل الكود، ولا تحتاج إلى Script Properties).</li><li>انسخ الكود، وافتح جوجل شيت ثم الإضافات ثم Apps Script، وامسح الكود الموجود والصق الكود الجديد، ثم احفظ.</li><li>اضغط نشر ثم <b>إدارة عمليات النشر</b> ثم أيقونة التعديل ثم الإصدار: <b>إصدار جديد</b> ثم نشر. (إن أنشأت «عملية نشر جديدة» فسيتغير الرابط، فاستخدم الرابط الجديد.) الإعدادات: نفّذ بصفتي، والوصول: أي شخص.</li><li>الصق رابط التطبيق (ينتهي بـ /exec) واضغط <b>حفظ</b> ثم <b>اختبار الاتصال</b>: سيخبرك هل الرابط والكود وكلمة السر سليمة.</li></ol>
+<label>كلمة السر (KEY)<input id="gsk" type="text" dir="ltr" autocomplete="off" value="${esc(c.key||'')}" oninput="gsKeyIn()"></label>
+<textarea id="gsc" rows="10" readonly onclick="this.select()" style="margin-top:10px">${esc(gsCode(c.key||''))}</textarea>
+<div style="margin:8px 0 14px"><button class="btn alt sm" onclick="gsCopy()">${ic('list',14)}نسخ الكود (مع كلمة السر)</button></div>
 <label>رابط تطبيق الويب<input id="gsu" dir="ltr" placeholder="https://script.google.com/macros/s/.../exec" value="${esc(c.url||'')}"></label>
-<label style="margin-top:10px">كلمة السر (KEY)<input id="gsk" type="password" dir="ltr" autocomplete="off" value="${esc(c.key||'')}"></label>
 <label style="margin-top:10px;display:flex;gap:8px;align-items:center"><input id="gsa" type="checkbox" style="width:auto;margin:0"${c.on===false?'':' checked'}>تشغيل المزامنة التلقائية (يُنصح بتركها مفعّلة)</label>
 <div class="hint" style="margin-top:6px">ملاحظة: كلمة السر تُحفظ في قاعدة البيانات ويراها المستخدمون المسجلون، فاستخدم كلمة خاصة بالربط فقط.</div>
 <div id="gss" class="hint" style="margin-top:10px">${c.url?'الربط محفوظ ويعمل تلقائيًا':'لم يتم الربط بعد'}</div>
 <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" onclick="gsSave()">${ic('plus',18)}حفظ</button><button class="btn alt" onclick="gsTest()">${ic('search',18)}اختبار الاتصال</button><button class="btn alt" onclick="gsNow()">${ic('up',18)}مزامنة الآن</button><button class="btn alt" onclick="gsClose()">إغلاق</button></div></div>`;
  $('gsm').classList.add('on')}
 function gsClose(){$('gsm').classList.remove('on')}
-async function gsCopy(){const t=$('gsc');t.select();try{await navigator.clipboard.writeText(GSCODE);return toast('تم نسخ الكود')}catch(e){}
+async function gsCopy(){const t=$('gsc'),v=t.value;t.select();try{await navigator.clipboard.writeText(v);return toast('تم نسخ الكود')}catch(e){}
  try{if(document.execCommand('copy'))return toast('تم نسخ الكود')}catch(e){}toast('تم تحديد الكود، اضغط Ctrl+C','e')}
 function gsForm(){const u=$('gsu').value.trim(),k=$('gsk').value.trim();
  if(u&&!gsValid(u)){toast('الرابط غير صحيح. يجب أن يبدأ بـ https://script.google.com/macros/s/ وينتهي بـ /exec','e');return null}
@@ -863,10 +874,14 @@ const gsHasData=()=>S.v.length+S.s.length+S.t.length>0;
 async function gsReq(url,opt){const r=await fetch(url,opt);const t=await r.text();let j;try{j=JSON.parse(t)}catch(e){throw{bad:true}}return j}
 const NETM='تعذر الاتصال بجوجل شيت. تأكد من الإنترنت ومن رابط النشر.';
 async function gsTest(){const f=gsForm();if(!f)return;if(!f.url)return toast('أدخل رابط تطبيق الويب أولًا','e');
- setGs('جارٍ اختبار الاتصال...');
+ const bad=m=>{setGs(m,true);gsDot('er')};setGs('جارٍ اختبار الاتصال...');
  try{const j=await gsReq(f.url,{method:'GET'});
-  if(j&&j.ok){setGs('الاتصال سليم، تطبيق الويب جاهز.');gsDot('ok');toast('الاتصال سليم')}
-  else{setGs('الرابط يرد لكن الرد غير متوقع. تأكد من نسخ الكود كاملًا ونشر إصدار جديد.',true);gsDot('er')}}
+  if(!(j&&j.ok))return bad('الرابط يرد لكن الرد غير متوقع. تأكد من نسخ الكود كاملًا ونشر إصدار جديد.');
+  if(j.keySet===undefined)return bad('الرابط يعمل لكن الكود المنشور قديم. انسخ الكود الجديد وانشره: إدارة عمليات النشر ثم تعديل ثم إصدار جديد.');
+  if(!j.keySet)return bad('الرابط سليم لكن الشيت لا يعرف كلمة السر. اكتب كلمة السر في الخانة، انسخ الكود من جديد (يحتويها تلقائيًا)، والصقه، وانشر إصدارًا جديدًا.');
+  let p=null;try{p=await gsReq(f.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({ping:true,key:f.key})})}catch(e2){setGs('الاتصال سليم، لكن تعذر التأكد من مطابقة كلمة السر.');gsDot('');return}
+  if(p&&p.error==='auth')return bad('كلمة السر غير مطابقة لما في الكود المنشور. انسخ الكود من جديد بعد كتابة الكلمة، وانشر إصدارًا جديدًا.');
+  setGs('الاتصال سليم وكلمة السر مطابقة. جاهز للمزامنة.');gsDot('ok');toast('الاتصال سليم')}
  catch(e){setGs(e&&e.bad?'الرابط لا يرد كتطبيق ويب. تأكد أن الوصول لأي شخص وأنه رابط ينتهي بـ /exec.':NETM,true);gsDot('er')}}
 function gsNow(){const f=gsForm();if(!f)return;if(!f.url)return toast('أدخل رابط تطبيق الويب أولًا','e');gsSync(true,f)}
 async function gsSync(manual,over){const c=over||gsCfg();
@@ -885,7 +900,7 @@ async function gsSync(manual,over){const c=over||gsCfg();
   let j=null,conf=true;
   try{j=await gsReq(c.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:body})}
   catch(e1){if(e1&&e1.bad)throw e1;conf=false;await fetch(c.url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:body})}
-  if(conf&&j&&(j.error==='auth'||j.error==='no_key'))throw{bad:true,msg:j.error==='auth'?'كلمة السر غير مطابقة لـ KEY في الشيت':'لم تتم إضافة KEY في Script Properties'};
+  if(conf&&j&&(j.error==='auth'||j.error==='no_key'))throw{bad:true,msg:j.error==='auth'?'كلمة السر غير مطابقة لما في الكود المنشور في الشيت. انسخ الكود من نافذة الربط بعد كتابة الكلمة وانشر إصدارًا جديدًا':'الشيت لا يعرف كلمة السر. اكتب الكلمة في نافذة الربط، انسخ الكود من جديد والصقه وانشر إصدارًا جديدًا (إدارة عمليات النشر ثم تعديل ثم إصدار جديد)'};
   if(conf&&!(j&&j.ok))throw{bad:true,msg:(j&&j.error)||''};
   send.forEach(k=>{gsLast[k]=sigs[k]});if(send.includes('l')){gsLastCore=core;gsLastL=Date.now()}
   const cn=j&&j.counts?Object.keys(j.counts).map(k=>k+': '+j.counts[k]).join(' | '):'';
@@ -915,7 +930,7 @@ try{
  window.DB={
   onAuth(cb){AU.onAuthStateChanged(auth,u=>cb(u?{uid:u.uid,email:String(u.email||'').toLowerCase(),name:u.displayName||'',verified:u.emailVerified!==false}:null))},
   async google(){const p=new AU.GoogleAuthProvider();p.setCustomParameters({prompt:'select_account'});
-   try{await AU.signInWithRedirect(auth, p)}catch(e){if(e&&(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment')){await AU.signInWithRedirect(auth,p);return}throw e}},
+   try{await AU.signInWithPopup(auth,p)}catch(e){if(e&&(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment')){await AU.signInWithRedirect(auth,p);return}throw e}},
   signOut(){return AU.signOut(auth)},
   listen(col,cb,err){return FS.onSnapshot(FS.collection(db,col),s=>cb(s.docs.map(d=>({...d.data(),id:d.id}))),err)},
   set(col,id,d){return FS.setDoc(FS.doc(db,col,id),d)},
