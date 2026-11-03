@@ -914,8 +914,22 @@ try{
  let db;try{db=FS.initializeFirestore(app,{localCache:FS.persistentLocalCache({tabManager:FS.persistentMultipleTabManager()})})}catch(e){db=FS.getFirestore(app)}
  window.DB={
   onAuth(cb){AU.onAuthStateChanged(auth,u=>cb(u?{uid:u.uid,email:String(u.email||'').toLowerCase(),name:u.displayName||'',verified:u.emailVerified!==false}:null))},
-  async google(){const p=new AU.GoogleAuthProvider();p.setCustomParameters({prompt:'select_account'});
-   try{await AU.signInWithRedirect(auth, p)}catch(e){if(e&&(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment')){await AU.signInWithRedirect(auth,p);return}throw e}},
+async google(){
+  const p = new AU.GoogleAuthProvider();
+  p.setCustomParameters({prompt: 'select_account'});
+  try {
+    // استخدام النافذة المنبثقة مباشرة
+    const result = await AU.signInWithPopup(auth, p);
+    return result.user;
+  } catch(e) {
+    // إذا تم حظر النافذة المنبثقة بواسطة المتصفح، يمكنك الانتقال لإعادة التوجيه كحل بديل احتياطي
+    if (e && e.code === 'auth/popup-blocked') {
+      await AU.signInWithRedirect(auth, p);
+      return;
+    }
+    throw e;
+  }
+}
   signOut(){return AU.signOut(auth)},
   listen(col,cb,err){return FS.onSnapshot(FS.collection(db,col),s=>cb(s.docs.map(d=>({...d.data(),id:d.id}))),err)},
   set(col,id,d){return FS.setDoc(FS.doc(db,col,id),d)},
