@@ -243,7 +243,7 @@ function vOut(){const p0=PR[0].id,w0=S.w.find(w=>w.p===p0),R=rates();
  <div class="hint">الكمية من المركب تُحتسب على المركب وتُخصم من رصيد مخازننا إذا كان المصدر مخازننا. كمية غير المركب (مثل سلفة من العميل) تُسجل منفصلة ولا تُخصم. الحساب (${f(R.ton)} جنيه للطن والقطع) يسري على مخازننا فقط ولمقاول غير اللوجيستية، وأي كسر في الطن يُحسب طنًا كاملًا.</div>
  ${isAdmin()?'<div class="hint" id="pv" style="font-weight:700"></div>':''}
  <button class="btn out" type="submit">${ic('up',18)}تسجيل المنصرف</button><span class="av" id="av">${w0?'المتاح في المخزن: '+f(st(w0.id))+' طن':''}</span></form>
- <h2>${ic('up',20)}سجل المنصرف</h2>${rxBtn('o')}${tbl(allLog().filter(x=>x.ty==='outc'),true)}`};
+ <h2>${ic('up',20)}سجل المنصرف</h2>${rxBtn('o')}${tbl(allLog().filter(x=>x.ty==='outc'),true)}`}
 const vOpts=pid=>'<option value="">— اختر المركب —</option>'+S.v.filter(v=>v.p===pid).map(v=>`<option value="${v.id}">${esc(v.vessel)} · رصيف ${esc(v.berth||'—')} · منصرف ${f(dispV(v.id))} من ${f(v.q)}</option>`).join('');
 const cOpts=()=>'<option value="">— غير محدد —</option>'+S.c.map(c=>`<option value="${esc(c.n)}">${esc(c.n)}${c.lg?' (لوجستيات)':''}</option>`).join('');
 function outUpd(sel){const F=sel.form.elements;
@@ -301,6 +301,11 @@ function exportCard(){return`<div class="card"><div class="sec">${ic('list',20)}
 <div class="fl"><select onchange="xs=this.value;$('xo').value=tsv(xs)"><option value="v"${xs==='v'?' selected':''}>المراكب</option><option value="s"${xs==='s'?' selected':''}>التخزين اليومي</option><option value="r"${xs==='r'?' selected':''}>ملخص الورديات</option><option value="o"${xs==='o'?' selected':''}>المنصرف</option><option value="l"${xs==='l'?' selected':''}>سجل الدخول</option><option value="g"${xs==='g'?' selected':''}>تقرير المخازن</option><option value="d"${xs==='d'?' selected':''}>التقرير اليومي (الإيراد)</option><option value="e"${xs==='e'?' selected':''}>بيانات الإيراد (للشيت)</option></select></div>
 <textarea id="xo" rows="6" readonly onclick="this.select()">${esc(tsv(xs))}</textarea>
 <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn" onclick="cp()">${ic('list',18)}نسخ للصق في جوجل شيت</button><button class="btn alt" onclick="dlCsv()">${ic('down',18)}تنزيل CSV</button></div></div>`}
+
+async function cp(){const t=$('xo');t.select();
+ try{await navigator.clipboard.writeText(t.value);return toast('تم النسخ. افتح جوجل شيت والصق في الخلية A1')}catch(e){}
+ try{if(document.execCommand('copy'))return toast('تم النسخ. افتح جوجل شيت والصق في الخلية A1')}catch(e){}
+ toast('تم تحديد النص، اضغط Ctrl+C ثم الصقه في جوجل شيت','e')}
 
 function prList(){const x=S.x||[];return x.length?`<div class="card" style="margin-top:12px"><div class="sec">${ic('list',20)}الأصناف المضافة</div>${x.map(p=>`<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--b)"><span class="dot" style="background:${p.c}"></span><b>${esc(p.n)}</b><span style="margin-inline-start:auto"><button class="x" onclick="hidePr('${p.id}')">${ic('trash',14)}${pend===p.id?'تأكيد الإخفاء؟':'إخفاء'}</button></span></div>`).join('')}</div>`:''}
 
@@ -424,7 +429,7 @@ function vLgn(){
  return`<h2>${ic('cal',20)}سجل الدخول والخروج</h2><div class="tw"><table style="min-width:640px"><thead><tr><th>المستخدم</th><th>التاريخ</th><th>وقت الدخول</th><th>وقت الخروج</th><th>المدة</th><th>ملاحظة</th></tr></thead><tbody>${rows||'<tr><td colspan="6" class="emp">لا توجد سجلات</td></tr>'}</tbody></table></div>`}
 function vBk(){return exportCard()+`<div class="card" style="margin-top:12px"><div class="sec">${ic('sheet',20)}ربط جوجل شيت</div><div class="hint">ربط دائم يعمل تلقائيًا لكل الأجهزة: يُحفظ مرة واحدة وتُرسل البيانات للشيت عند أي تغيير ومن أي مستخدم، بدون ضغط مزامنة.</div><button class="btn alt" onclick="gsOpen()">${ic('sheet',18)}إعدادات الربط</button></div>
 <div class="card" style="margin-top:12px"><div class="sec">${ic('down',20)}استيراد بيانات من النسخة القديمة</div><div class="hint">الصق النسخة الاحتياطية من النسخة القديمة. يُضاف المحتوى للبيانات الحالية ولا يحذف شيئًا.</div><textarea id="bki" rows="5" placeholder="الصق النسخة هنا">${esc(bkv)}</textarea><div style="margin-top:10px"><button class="btn" onclick="importData()">${ic('down',18)}${pend==='imp'?'تأكيد الاستيراد؟':'استيراد'}</button></div></div>`}
-function dlCsv(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv(xs)],{type:'text/csv;charset=utf-8'}));a.download=XN[xs]+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
+function dlCsv(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv(xs)],{type:'text/csv;charset=utf-8'}));a.download=XN[xs]+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),3000)}
 
 let dayD=today();
 const r2=n=>Math.round(n*100)/100;
@@ -442,7 +447,7 @@ function dayAgg(date){const m={},lg={tr:0,q:0,settle:0};
  return{rows:rows,tot:[date,'إجمالي اليوم',s(2),r3(s(3)),r3(s(4)),s(5),s(6),s(7)],lg:lg}}
 function dayRowsAll(fr,to){const body=[],g=[0,0,0,0,0,0];
  uq(S.t.map(x=>x.d)).sort().filter(d=>(!fr||d>=fr)&&(!to||d<=to)).forEach(d=>{const a=dayAgg(d);if(!a.rows.length)return;a.rows.forEach(r=>body.push(r));body.push(a.tot);for(let i=0;i<6;i++)g[i]=r2(g[i]+a.tot[i+2])});
- return[['التاريخ','المقاول','عدد العربيات','الأطنان (كل المصادر)','من مخازننا (طن)','إيراد الأطنان (جنيه)','إيراد القطع (جنيه)','إجمالي الإيراد (جنيه)'],...body,['الإجمالي الكلي','',...g]}
+ return[['التاريخ','المقاول','عدد العربيات','الأطنان (كل المصادر)','من مخازننا (طن)','إيراد الأطنان (جنيه)','إيراد القطع (جنيه)','إجمالي الإيراد (جنيه)'],...body,['الإجمالي الكلي','',...g]]}
 function dayBody(){const a=dayAgg(dayD),t=a.tot;
  const cards=`<div class="grid g3"><div class="card st"><div class="ic">${ic('box',24)}</div><div><b>${f(t[7])} <small>جنيه</small></b><span>إجمالي إيراد اليوم</span></div></div><div class="card st"><div class="ic">${ic('truck',24)}</div><div><b>${f(t[2])}</b><span>عدد العربيات (بدون اللوجيستية)</span></div></div><div class="card st"><div class="ic">${ic('wheat',24)}</div><div><b>${f(t[3])} <small>طن</small></b><span>الأطنان المنصرفة</span></div></div></div>`;
  const rows=a.rows.map(r=>`<tr><td><b>${esc(r[1])}</b></td><td class="num">${f(r[2])}</td><td class="num">${f(r[3])}</td><td class="num">${f(r[4])}</td><td class="num">${f(r[5])}</td><td class="num">${f(r[6])}</td><td class="num"><b>${f(r[7])}</b></td></tr>`).join('');
@@ -501,7 +506,7 @@ const XS=(()=>{const bd='<color rgb="FFCBD5DB"/>',al=(h,w)=>'<alignment horizont
  const xfs=[xf(0,0,0,0,al('general')),xf(0,1,2,0,al('center')),xf(0,2,0,0,al('center')),xf(0,3,2,1,al('center',1)),xf(0,0,0,1,al('general',1)),xf(0,0,3,1,al('general',1)),xf(164,0,0,1,al('center')),xf(164,0,3,1,al('center')),xf(165,0,0,1,al('center')),xf(165,0,3,1,al('center')),xf(0,4,4,2,al('center')),xf(164,4,4,2,al('center')),xf(0,5,0,0,al('general')),xf(0,4,4,1,al('general',1)),xf(164,4,4,1,al('center')),xf(165,4,4,1,al('center'))];
  const bdr=t=>'<border><left style="thin">'+bd+'</left><right style="thin">'+bd+'</right><top style="'+t+'">'+(t==='medium'?'<color rgb="FF0B6B73"/>':bd)+'</top><bottom style="thin">'+bd+'</bottom><diagonal/></border>';
  const fill=c=>'<fill><patternFill patternType="solid"><fgColor rgb="FF'+c+'"/><bgColor indexed="64"/></patternFill></fill>';
- return'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0.##"/><numFmt numFmtId="165" formatCode="yyyy-mm-dd"/></numFmts><fonts count="6"><font><sz val="11"/><name val="Arial"/></font><font><b/><sz val="18"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><sz val="10"/><color rgb="FF5B6B78"/><name val="Arial"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><b/><sz val="11"/><color rgb="FF000000"/><name val="Arial"/></font><font><i/><sz val="9"/><color rgb="FF5B6B78"/><name val="Arial"/></font></fonts><fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>'+fill('0B6B73')+fill('F3F8F9')+fill('DCEBEC')+'</fills><borders count="3"><border><left/><right/><top/><bottom/><diagonal/></border>'+bdr('thin')+bdr('medium')+'</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="'+xfs.length+'">'+xfs.join('')+'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'})();
+ return'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0.##"/><numFmt numFmtId="165" formatCode="yyyy-mm-dd"/></numFmts><fonts count="6"><font><sz val="11"/><name val="Arial"/></font><font><b/><sz val="18"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><sz val="10"/><color rgb="FF5B6B78"/><name val="Arial"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><b/><sz val="11"/><name val="Arial"/></font><font><i/><sz val="9"/><color rgb="FF5B6B78"/><name val="Arial"/></font></fonts><fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>'+fill('0B6B73')+fill('F3F8F9')+fill('DCEBEC')+'</fills><borders count="3"><border><left/><right/><top/><bottom/><diagonal/></border>'+bdr('thin')+bdr('medium')+'</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="'+xfs.length+'">'+xfs.join('')+'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'})();
 function xlsxBuild(d){const nc=d.head.length,L=colL,lastC=L(nc-1);
  const xe=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'');
  const serial=s=>{const p=s.split('-');return Math.round((Date.UTC(+p[0],+p[1]-1,+p[2])-Date.UTC(1899,11,30))/86400000)};
@@ -542,7 +547,7 @@ function xlsxBuild(d){const nc=d.head.length,L=colL,lastC=L(nc-1);
 function rxHtml(d){const num=(v,i)=>typeof v==='number'?f(v):esc(v);
  const tb=d.rows.map(rw=>'<tr class="'+(rw.tot?'tot':'')+'">'+rw.cells.map((v,i)=>'<td'+(d.types[i]==='n'?' class="n"':'')+'>'+num(v,i)+'</td>').join('')+'</tr>').join('');
  let tot='';if(d.total&&d.rows.length)tot='<tr class="tot">'+d.head.map((h,i)=>i===0?'<td>الإجمالي</td>':d.types[i]==='n'?'<td class="n">'+f(d.rows.reduce((a,rw)=>a+(!rw.tot&&typeof rw.cells[i]==='number'?rw.cells[i]:0),0))+'</td>':'<td></td>').join('')+'</tr>';
- return'<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc(d.title)+'</title><style>@page{size:A4 '+(d.orient==='portrait'?'portrait':'landscape')+';margin:12mm 9mm 14mm}*{box-sizing:border-box}body{font-family:Tahoma,"Segoe UI",Arial,sans-serif;color:#10212e;margin:0;font-size:11px}.hd{background:#0b6b73;color:#fff;padding:12px 16px;border-radius:6px;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}.hd h1{margin:0;font-size:20px}.hd p{margin:5px 0 0;font-size:12px}.meta{display:flex;justify-content:space-between;color:#5b6b78;font-size:10.5px;margin:8px 2px 4px}table{width:100%;border-collapse:collapse}thead{display:table-header-group}th{background:#0b6b73;color:#fff;padding:6px 5px;border:1px solid #cbd5db;-webkit-print-color-adjust:exact;print-color-adjust:exact}td{padding:5px;border:1px solid #cbd5db;vertical-align:top}tbody tr:nth-child(even) td{background:#f3f8f9;-webkit-print-color-adjust:exact;print-color-adjust:exact}tr{page-break-inside:avoid}td.n{text-align:center;white-space:nowrap}tr.tot td{background:#dcebec!important;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}.ft{margin-top:10px;font-size:10.5px;color:#5b6b78}</style></head><body><div class="hd"><h1>'+esc(d.title)+'</h1>'+(d.sub?'<p>'+esc(d.sub)+'</p>':'')+'</div><div class="meta"><span>'+esc(d.co||'')+'</span><span>تاريخ الإصدار: '+today()+'</span></div><table><thead><tr>'+d.head.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+tb+tot+'</tbody></table>'+(d.ft?'<div class="ft">'+esc(d.ft+'</div>':'')+'</body></html>'}
+ return'<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>'+esc(d.title)+'</title><style>@page{size:A4 '+(d.orient==='portrait'?'portrait':'landscape')+';margin:12mm 9mm 14mm}*{box-sizing:border-box}body{font-family:Tahoma,"Segoe UI",Arial,sans-serif;color:#10212e;margin:0;font-size:11px}.hd{background:#0b6b73;color:#fff;padding:12px 16px;border-radius:6px;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}.hd h1{margin:0;font-size:20px}.hd p{margin:5px 0 0;font-size:12px}.meta{display:flex;justify-content:space-between;color:#5b6b78;font-size:10.5px;margin:8px 2px 4px}table{width:100%;border-collapse:collapse}thead{display:table-header-group}th{background:#0b6b73;color:#fff;padding:6px 5px;border:1px solid #cbd5db;-webkit-print-color-adjust:exact;print-color-adjust:exact}td{padding:5px;border:1px solid #cbd5db;vertical-align:top}tbody tr:nth-child(even) td{background:#f3f8f9;-webkit-print-color-adjust:exact;print-color-adjust:exact}tr{page-break-inside:avoid}td.n{text-align:center;white-space:nowrap}tr.tot td{background:#dcebec!important;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}.ft{margin-top:10px;font-size:10.5px;color:#5b6b78}</style></head><body><div class="hd"><h1>'+esc(d.title)+'</h1>'+(d.sub?'<p>'+esc(d.sub)+'</p>':'')+'</div><div class="meta"><span>'+esc(d.co||'')+'</span><span>تاريخ الإصدار: '+today()+'</span></div><table><thead><tr>'+d.head.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+tb+tot+'</tbody></table>'+(d.ft?'<div class="ft">'+esc(d.ft)+'</div>':'')+'</body></html>'}
 function rxXlsx(){const d=rxGet();if(!d)return;dlBlob(xlsxBuild(d),fnameOf(d)+'.xlsx');toast('تم تنزيل ملف Excel')}
 function rxPdf(){const d=rxGet();if(!d)return;const fr=document.createElement('iframe');fr.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0';document.body.appendChild(fr);
  const w=fr.contentWindow;w.document.open();w.document.write(rxHtml(d));w.document.close();toast('اختر "حفظ بتنسيق PDF" من نافذة الطباعة');
@@ -832,7 +837,7 @@ const gsValid=u=>/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test
 let gsLast={},gsLastCore='',gsLastL=0,gsRetryT=0;
 function setGs(m,e){const el=$('gss');if(el){el.textContent=m;el.style.color=e?'var(--out)':'var(--m)'}}
 function gsOpen(){if(!isAdmin())return;const c=gsCfg()||{};$('gsm').innerHTML=`<div class="box"><div class="sec">${ic('sheet',22)}ربط جوجل شيت (دائم وتلقائي)</div>
-<ol class="hint" style="line-height:2;padding-inline-start:20px;margin:0 0 10px"><li>افتح جوجل شيت جديد ثم الإضافات ثم Apps Script، والصق الكود التالي مكان الكود الموجود.</li><li>من إعدادات المشروع (Project Settings) أضف في Script Properties مفتاحًا اسمه KEY وقيمته كلمة سر تختارها.</li><li>اضغط نشر ثم عملية نشر جديدة ثم تطبيق ويب. نفّذ بصفتي، والوصول: أي شخص. (وعند تحديث الكود لاحقًا: نشر ثم إدارة عمليات النشر ثم تعديل ثم إصدار جديد.)</li><li>انسخ رابط التطبيق (ينتهي بـ /exec) والصقه هنا مع نفس كلمة السر، ثم اضغط حفظ. تُحفظ الإعدادات لكل الأجهزة وتعمل المزامنة تلقائيًا بعدها، فلا تحتاج لضغط مزامنة بعد الإغلاق.</li><li>بعد أول مزامنة تظهر في الشيت ورقة <b>الإيراد اليومي</b> (أول ورقة): اضغط مرتين على خلية التاريخ لاختيار اليوم من التقويم، فيظهر اسم اليوم وعدد العربيات والإيراد وتفاصيل السائقين.</li><li>كل ورقة بيانات (المنصرف، التخزين، المراكب، الورديات، الدخول) في أعلاها خلية <b>B2</b> للبحث بالتاريخ: اكتب التاريخ فيظهر تحته كل ما حدث في اليوم بكل بياناته، واتركها فارغة لعرض الكل. الصفوف الخمسة العلوية محفوظة ولا تمسّها المزامنة، والبيانات الخام في أوراق اسمها تبدأ بـ «خام -».</li></ol>
+<ol class="hint" style="line-height:2;padding-inline-start:20px;margin:0 0 10px"><li>افتح جوجل شيت جديد ثم الإضافات ثم Apps Script، والصق الكود التالي مكان الكود الموجود.</li><li>من إعدادات المشروع (Project Settings) أضف في Script Properties مفتاحًا اسمه KEY وقيمته كلمة سر تختارها.</li><li>اضغط نشر ثم عملية نشر جديدة ثم تطبيق ويب. نفّذ بصفتي، والوصول: أي شخص. (وعند تحديث الكود لاحقًا: نشر ثم إدارة عمليات النشر ثم تعديل ثم إصدار جديد.)</li><li>انسخ رابط التطبيق (ينتهي بـ /exec) والصقه هنا مع نفس كلمة السر، ثم اضغط حفظ. تُحفظ الإعدادات لكل الأجهزة وتعمل المزامنة تلقائيًا بعدها، فلا تحتاج لضغط مزامنة بعد الإغلاق.</li><li>بعد أول مزامنة تظهر في الشيت ورقة <b>الإيراد اليومي</b> (أول ورقة): اضغط مرتين على خلية التاريخ لاختيار اليوم من التقويم، فيظهر اسم اليوم وعدد العربيات والإيراد وتفاصيل السائقين.</li><li>كل ورقة بيانات (المنصرف، التخزين، المراكب، الورديات، الدخول) في أعلاها خلية <b>B2</b> للبحث بالتاريخ: اكتب التاريخ فيظهر تحته كل ما حدث في اليوم بكل بياناته، واتركها فارغة لعرض الكل. الصفوف الخمسة العلوية محفوظة ولا تمسّها المزامنة، والبيانات الخام في أوراق مخفية اسمها تبدأ بـ «خام -».</li></ol>
 <textarea id="gsc" rows="10" readonly onclick="this.select()">${esc(GSCODE)}</textarea>
 <div style="margin:8px 0 14px"><button class="btn alt sm" onclick="gsCopy()">${ic('list',14)}نسخ الكود</button></div>
 <label>رابط تطبيق الويب<input id="gsu" dir="ltr" placeholder="https://script.google.com/macros/s/.../exec" value="${esc(c.url||'')}"></label>
@@ -909,20 +914,8 @@ try{
  let db;try{db=FS.initializeFirestore(app,{localCache:FS.persistentLocalCache({tabManager:FS.persistentMultipleTabManager()})})}catch(e){db=FS.getFirestore(app)}
  window.DB={
   onAuth(cb){AU.onAuthStateChanged(auth,u=>cb(u?{uid:u.uid,email:String(u.email||'').toLowerCase(),name:u.displayName||'',verified:u.emailVerified!==false}:null))},
-  async google(){
-   const p=new AU.GoogleAuthProvider();
-   p.setCustomParameters({prompt:'select_account'});
-   try{
-    const result = await AU.signInWithPopup(auth, p);
-    return result.user;
-   }catch(e){
-    if(e && e.code==='auth/popup-blocked'){
-     await AU.signInWithRedirect(auth, p);
-     return;
-    }
-    throw e;
-   }
-  },
+  async google(){const p=new AU.GoogleAuthProvider();p.setCustomParameters({prompt:'select_account'});
+   try{await AU.signInWithRedirect(auth, p)}catch(e){if(e&&(e.code==='auth/popup-blocked'||e.code==='auth/operation-not-supported-in-this-environment')){await AU.signInWithRedirect(auth,p);return}throw e}},
   signOut(){return AU.signOut(auth)},
   listen(col,cb,err){return FS.onSnapshot(FS.collection(db,col),s=>cb(s.docs.map(d=>({...d.data(),id:d.id}))),err)},
   set(col,id,d){return FS.setDoc(FS.doc(db,col,id),d)},
@@ -931,6 +924,7 @@ try{
   async get(col,id){const s=await FS.getDoc(FS.doc(db,col,id));return s.exists()?{...s.data(),id:s.id}:null},
   async batch(ops){for(let i=0;i<ops.length;i+=400){const b=FS.writeBatch(db);ops.slice(i,i+400).forEach(o=>{const r=FS.doc(db,o.c,o.id);if(o.t==='del')b.delete(r);else if(o.t==='upd')b.update(r,o.d);else b.set(r,o.d)});await b.commit()}}
  };
+ AU.getRedirectResult(auth).catch(e=>dispatchEvent(new CustomEvent('db-autherr',{detail:e})));
  dispatchEvent(new Event('db-ready'));
 }catch(e){window.DB_ERR=String(e&&e.message||e);dispatchEvent(new Event('db-fail'))}
 </script>
