@@ -1,89 +1,101 @@
 rules_version = '2';
 service cloud.firestore {
-  match /databases/{database}/documents {
+  match /databases/{db}/documents {
+    function signedIn() { return request.auth != null; }
+    function me() { return get(/databases/$(db)/documents/users/$(request.auth.uid)).data; }
+    function isAdmin() { return signedIn() && me().role == 'admin'; }
+    function isStaff() { return signedIn() && me().role in ['admin','teacher']; }
 
-    function signedIn() {
-      return request.auth != null
-        && request.auth.token.email != null
-        && request.auth.token.email_verified == true;
-    }
-    function mail() {
-      return request.auth.token.email.lower();
-    }
-    function superAdmin() {
-      return signedIn() && mail() == 'kaboo7766@gmail.com';
-    }
-    function allowedPath() {
-      return /databases/$(database)/documents/allowed/$(mail());
-    }
-    function isUser() {
-      return superAdmin() || (signedIn() && exists(allowedPath()) && get(allowedPath()).data.active == true);
-    }
-    function isAdmin() {
-      return superAdmin() || (isUser() && get(allowedPath()).data.role == 'admin');
-    }
-    function qtyOk() {
-      return request.resource.data.q is number && request.resource.data.q > 0;
-    }
-    function outOk() {
-      return request.resource.data.q is number && request.resource.data.q >= 0
-        && request.resource.data.get('xq', 0) is number && request.resource.data.get('xq', 0) >= 0
-        && (request.resource.data.q > 0 || request.resource.data.get('xq', 0) > 0);
-    }
-    function onlyVoid() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['voided', 'voidedBy', 'voidedMs']);
-    }
+    function linked(owner) { return signedIn() && exists(/databases/$(db)/documents/parentLinks/$(request.auth.uid + '_' + owner)); }
 
-    // لا يُسمح بالحذف نهائيًا في أي مجموعة: الإلغاء والإخفاء تعديل فقط، والسجل محفوظ دائمًا.
-
-    match /allowed/{p} {
-      allow get: if signedIn() && p == mail();
-      allow list, create, update: if isAdmin();
+    match /parentLinks/{id} {
+      allow read: if signedIn() && (resource.data.parentUid == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin() || linked(uid));
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.role in ['student','parent','pending']
+        && request.resource.data.keys().hasOnly(['uid','name','email','role','createdAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() < 80;
+      allow delete: if isAdmin();
+      allow update: if isAdmin() || (signedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['classId','onboarded']));
+    }
+    match /classes/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
+    match /subjects/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
+    match /settings/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
+    match /lessons/{id} {
+      allow read: if signedIn() && (resource.data.published == true || isStaff());
+      allow create, update: if isStaff() && request.resource.data.url.matches('https://.*')
+        && request.resource.data.title is string && request.resource.data.title.size() < 150;
+      allow delete: if isAdmin();
+    }
+    match /quizzes/{id} {
+      allow read: if signedIn() && (resource.data.published == true || isStaff());
+      allow create, update: if isStaff() && request.resource.data.questions.size() > 0 && request.resource.data.questions.size() <= 50;
+      allow delete: if isAdmin();
+    }
+    match /quizResults/{id} {
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.score is int && request.resource.data.score <= request.resource.data.total;
+      allow read: if signedIn() && (resource.data.uid == request.auth.uid || isStaff() || linked(resource.data.uid));
+      allow update, delete: if false;
+    }
+    match /progress/{id} {
+      allow read: if signedIn() && (resource.data.uid == request.auth.uid || isStaff() || linked(resource.data.uid));
+      allow create, update: if signedIn() && request.resource.data.uid == request.auth.uid && id.matches(request.auth.uid + '_.*');
       allow delete: if false;
     }
-    match /meta/{id} {
-      allow read: if isUser();
-      allow create, update: if isAdmin();
-      allow delete: if false;
+    match /assignments/{id} {
+      allow read: if signedIn();
+      allow create, update: if isStaff() && request.resource.data.title is string && request.resource.data.title.size() < 150;
+      allow delete: if isAdmin();
     }
-    match /warehouses/{id} {
-      allow read: if isUser();
-      allow create, update: if isAdmin();
-      allow delete: if false;
+    match /submissions/{id} {
+      allow read: if signedIn() && (resource.data.uid == request.auth.uid || isStaff() || linked(resource.data.uid));
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+        && id == request.resource.data.assignmentId + '_' + request.auth.uid
+        && request.resource.data.keys().hasOnly(['assignmentId','uid','studentName','text','link','submittedAt'])
+        && request.resource.data.text is string && request.resource.data.text.size() <= 2000
+        && (!('link' in request.resource.data) || request.resource.data.link == '' || request.resource.data.link.matches('https://.*'));
+      allow update: if (signedIn() && resource.data.uid == request.auth.uid && !('grade' in resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text','link','submittedAt']))
+        || (isStaff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['grade','feedback','gradedAt'])
+          && request.resource.data.grade is number && request.resource.data.grade >= 0 && request.resource.data.grade <= 100);
+      allow delete: if isAdmin();
     }
-    match /products/{id} {
-      allow read: if isUser();
-      allow create, update: if isAdmin();
-      allow delete: if false;
+    match /notifications/{id} {
+      allow read: if signedIn() && (resource.data.audience == 'all' || resource.data.audience == request.auth.uid);
+      allow create: if isStaff() && request.resource.data.keys().hasOnly(['audience','title','body','at','createdBy']);
+      allow update, delete: if false;
     }
-    match /contractors/{id} {
-      allow read: if isUser();
-      allow create, update: if isAdmin();
-      allow delete: if false;
+    match /points/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isStaff() || linked(uid));
+      allow create: if signedIn() && request.auth.uid == uid && request.resource.data.keys().hasOnly(['uid','total','updatedAt'])
+        && request.resource.data.uid == uid && request.resource.data.total is int
+        && request.resource.data.total >= 0 && request.resource.data.total <= 50;
+      allow update: if signedIn() && request.auth.uid == uid && request.resource.data.keys().hasOnly(['uid','total','updatedAt'])
+        && request.resource.data.total is int && request.resource.data.total >= resource.data.total
+        && request.resource.data.total - resource.data.total <= 50;
+      allow delete: if isAdmin();
     }
-    match /vessels/{id} {
-      allow read: if isUser();
-      allow create: if isUser() && qtyOk();
-      allow update: if isAdmin();
-      allow delete: if false;
+    match /certificates/{id} {
+      allow read: if signedIn() && (resource.data.uid == request.auth.uid || isStaff() || linked(resource.data.uid));
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+        && id == request.auth.uid + '_' + request.resource.data.subjectId
+        && request.resource.data.keys().hasOnly(['uid','studentName','subjectId','subjectName','number','issuedAt'])
+        && request.resource.data.number.matches('FM-[0-9A-F]{12}');
+      allow update: if false;
+      allow delete: if isAdmin();
     }
-    match /stored/{id} {
-      allow read: if isUser();
-      allow create: if isUser() && qtyOk();
-      allow update: if isAdmin() && onlyVoid();
-      allow delete: if false;
-    }
-    match /outgoing/{id} {
-      allow read: if isUser();
-      allow create: if isUser() && outOk();
-      allow update: if isAdmin() && onlyVoid();
-      allow delete: if false;
-    }
-    match /logins/{id} {
-      allow read: if isAdmin() || (isUser() && resource.data.uid == request.auth.uid);
-      allow create: if isUser() && request.resource.data.uid == request.auth.uid;
-      allow update: if isUser() && resource.data.uid == request.auth.uid;
-      allow delete: if false;
+    match /siteTeachers/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /siteTestimonials/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /siteSettings/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /activityLogs/{id} {
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow read: if isAdmin();
+      allow update, delete: if false;
     }
   }
 }
